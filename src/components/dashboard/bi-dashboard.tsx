@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { FileSpreadsheet, FileText, Filter } from 'lucide-react';
 import type { Vehicle } from '@/lib/types';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
+import VehicleModelsChart from './vehicle-models-chart';
 
 interface BiDashboardProps {
   vehicles: Vehicle[];
@@ -110,17 +111,18 @@ export default function BiDashboard({ vehicles }: BiDashboardProps) {
         </CardHeader>
       </Card>
       
-      <div id="dashboard-print-area">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+      <div id="dashboard-print-area" className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <KpiCard title="Patrimônio Atual" value={totalAssets} />
           <KpiCard title="Receita Vendas (Período)" value={totalRevenue} description={`${salesCount} vendidos`} color="green" />
           <KpiCard title="Custo Manutenção" value={totalMaintenance} color="red" />
         </div>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <FinanceChart data={filteredData} />
           <SalesChart data={filteredData} />
         </div>
         <SuppliersChart data={filteredData} />
+        <VehicleModelsChart data={vehicles} />
       </div>
     </section>
   );
