@@ -134,12 +134,12 @@ export default function AddEditVehicleModal({
                         <FormItem>
                         <FormLabel className="text-xs uppercase font-bold text-blue-800 dark:text-blue-300">Grupo / Órgão</FormLabel>
                         <FormControl>
-                            <>
+                            <div>
                             <Input {...field} list="existingGroupsList" autoComplete="off" placeholder="Selecione ou digite novo..."/>
                             <datalist id="existingGroupsList">
                                 {groups.map(g => <option key={g.id} value={g.name} />)}
                             </datalist>
-                            </>
+                            </div>
                         </FormControl>
                         <FormMessage />
                         </FormItem>
