@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useMemo } from 'react';
-import { Bar, BarChart, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { Bar, BarChart, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { Vehicle } from '@/lib/types';
 
@@ -37,9 +37,10 @@ export default function VehicleModelsChart({ data }: VehicleModelsChartProps) {
       </CardHeader>
       <CardContent className="h-80">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={chartData} layout="vertical">
-            <XAxis type="number" hide />
-            <YAxis type="category" dataKey="name" width={100} fontSize={12} tickLine={false} axisLine={false} />
+          <BarChart data={chartData}>
+            <CartesianGrid strokeDasharray="3 3" vertical={false} />
+            <XAxis dataKey="name" fontSize={12} tickLine={false} axisLine={false} angle={-45} textAnchor="end" height={60} />
+            <YAxis fontSize={12} tickLine={false} axisLine={false} allowDecimals={false} />
             <Tooltip
               cursor={{ fill: 'hsl(var(--muted))' }}
               contentStyle={{
@@ -48,7 +49,7 @@ export default function VehicleModelsChart({ data }: VehicleModelsChartProps) {
                 borderRadius: 'var(--radius)',
               }}
             />
-            <Bar dataKey="Quantidade" fill="hsl(var(--chart-5))" radius={[0, 4, 4, 0]} barSize={30} />
+            <Bar dataKey="Quantidade" fill="hsl(var(--chart-5))" radius={[4, 4, 0, 0]} barSize={40} />
           </BarChart>
         </ResponsiveContainer>
       </CardContent>
