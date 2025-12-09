@@ -14,15 +14,20 @@ export default function VehicleModelsChart({ data }: VehicleModelsChartProps) {
     const modelCounts: { [key: string]: number } = {};
 
     data.forEach(vehicle => {
-      // Apenas veículos ativos são contados
       if (vehicle.status === 'ativo') {
-        modelCounts[vehicle.modelo] = (modelCounts[vehicle.modelo] || 0) + 1;
+        // Normalize the model name: lowercase and trim whitespace
+        const normalizedModel = vehicle.modelo.trim().toLowerCase();
+        modelCounts[normalizedModel] = (modelCounts[normalizedModel] || 0) + 1;
       }
     });
 
-    return Object.entries(modelCounts)
-      .map(([name, Quantidade]) => ({ name, Quantidade }))
-      .sort((a, b) => b.Quantidade - a.Quantidade);
+    // Capitalize the first letter of each word for display
+    const formattedData = Object.entries(modelCounts).map(([name, Quantidade]) => ({
+      name: name.replace(/\b\w/g, char => char.toUpperCase()),
+      Quantidade,
+    }));
+
+    return formattedData.sort((a, b) => b.Quantidade - a.Quantidade);
   }, [data]);
 
   return (
