@@ -76,7 +76,7 @@ onDeleteGroup,
             onAddVehicle={onAddVehicle}
             onAddGroup={onAddGroup}
             onUpdateGroup={onUpdateGroup}
-            onDeleteGroup={deleteGroup}
+            onDeleteGroup={onDeleteGroup}
           />
         </TabsContent>
         <TabsContent value="sold">
