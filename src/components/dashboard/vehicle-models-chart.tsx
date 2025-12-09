@@ -14,6 +14,7 @@ export default function VehicleModelsChart({ data }: VehicleModelsChartProps) {
     const modelCounts: { [key: string]: number } = {};
 
     data.forEach(vehicle => {
+      // Apenas veículos ativos são contados
       if (vehicle.status === 'ativo') {
         modelCounts[vehicle.modelo] = (modelCounts[vehicle.modelo] || 0) + 1;
       }
