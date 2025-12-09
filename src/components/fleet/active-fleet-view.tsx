@@ -44,11 +44,6 @@ export default function ActiveFleetView({
     setEditingVehicle(null);
     setVehicleModalOpen(true);
   };
-  
-  const handleOpenEditVehicle = (vehicle: Vehicle) => {
-    setEditingVehicle(vehicle);
-    setVehicleModalOpen(true);
-  }
 
   const filteredVehicles = useMemo(() => {
     if (!search) return vehicles;
@@ -148,10 +143,12 @@ export default function ActiveFleetView({
               key={group.name} 
               group={group} 
               onVehicleDrop={handleDragEnd}
-              onVehicleClick={(vehicle) => handleOpenEditVehicle(vehicle)}
               companyId={companyId}
               allVehicles={allVehicles}
+              groups={groups}
               onUpdateVehicle={onUpdateVehicle}
+              onAddVehicle={onAddVehicle}
+              onAddGroup={onAddGroup}
             />
           ))}
         </div>

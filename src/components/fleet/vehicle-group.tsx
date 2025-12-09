@@ -5,9 +5,8 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { Card } from '../ui/card';
 import VehicleCard from './vehicle-card';
 import { formatCurrency } from '@/lib/utils';
-import type { Vehicle, CompanyId } from '@/lib/types';
+import type { Vehicle, CompanyId, Group } from '@/lib/types';
 import { Folder } from 'lucide-react';
-import SellVehicleModal from '../modals/sell-vehicle-modal';
 import VehicleDetailsModal from '../modals/vehicle-details-modal';
 
 interface VehicleGroupProps {
@@ -16,15 +15,25 @@ interface VehicleGroupProps {
     vehicles: Vehicle[];
   };
   onVehicleDrop: (vehicleId: string, newGroupName: string) => void;
-  onVehicleClick: (vehicle: Vehicle) => void;
   companyId: CompanyId;
   allVehicles: Vehicle[];
+  groups: Group[];
   onUpdateVehicle: (vehicle: Vehicle) => void;
+  onAddVehicle: (vehicleData: Omit<Vehicle, 'id'>) => void;
+  onAddGroup: (group: Omit<Group, 'id'>) => void;
 }
 
-export default function VehicleGroup({ group, onVehicleDrop, companyId, allVehicles, onUpdateVehicle }: VehicleGroupProps) {
+export default function VehicleGroup({ 
+  group, 
+  onVehicleDrop, 
+  companyId, 
+  allVehicles, 
+  groups,
+  onUpdateVehicle, 
+  onAddVehicle,
+  onAddGroup 
+}: VehicleGroupProps) {
   const [isDragOver, setIsDragOver] = useState(false);
-  const [isSellModalOpen, setSellModalOpen] = useState(false);
   const [isDetailsModalOpen, setDetailsModalOpen] = useState(false);
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
 
@@ -51,11 +60,6 @@ export default function VehicleGroup({ group, onVehicleDrop, companyId, allVehic
     setSelectedVehicle(vehicle);
     setDetailsModalOpen(true);
   };
-
-  const openSellModal = (vehicle: Vehicle) => {
-    setSelectedVehicle(vehicle);
-    setSellModalOpen(true);
-  }
 
   return (
     <>
@@ -96,22 +100,10 @@ export default function VehicleGroup({ group, onVehicleDrop, companyId, allVehic
           vehicle={selectedVehicle}
           allVehicles={allVehicles}
           companyId={companyId}
+          groups={groups}
           onUpdateVehicle={onUpdateVehicle}
-          onSellClick={() => {
-            setDetailsModalOpen(false);
-            setSellModalOpen(true);
-          }}
-        />
-      )}
-
-      {selectedVehicle && (
-        <SellVehicleModal
-          isOpen={isSellModalOpen}
-          setIsOpen={setSellModalOpen}
-          vehicle={selectedVehicle}
-          onSold={(saleInfo) => {
-            onUpdateVehicle({ ...selectedVehicle, status: 'vendido', vendaInfo: saleInfo });
-          }}
+          onAddVehicle={onAddVehicle}
+          onAddGroup={onAddGroup}
         />
       )}
     </>

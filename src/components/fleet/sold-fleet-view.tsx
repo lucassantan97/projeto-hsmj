@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
 import { ScrollArea } from '../ui/scroll-area';
 import { History } from 'lucide-react';
-import type { Vehicle, CompanyId } from '@/lib/types';
+import type { Vehicle, CompanyId, Group } from '@/lib/types';
 import { formatCurrency } from '@/lib/utils';
 import VehicleDetailsModal from '../modals/vehicle-details-modal';
 
@@ -12,9 +12,12 @@ interface SoldFleetViewProps {
   vehicles: Vehicle[];
   companyId: CompanyId;
   onUpdateVehicle: (vehicle: Vehicle) => void;
+  groups: Group[];
+  onAddVehicle: (vehicleData: Omit<Vehicle, 'id'>) => void;
+  onAddGroup: (group: Omit<Group, 'id'>) => void;
 }
 
-export default function SoldFleetView({ vehicles, companyId, onUpdateVehicle }: SoldFleetViewProps) {
+export default function SoldFleetView({ vehicles, companyId, onUpdateVehicle, groups, onAddVehicle, onAddGroup }: SoldFleetViewProps) {
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
   const [isDetailsModalOpen, setDetailsModalOpen] = useState(false);
 
@@ -78,7 +81,9 @@ export default function SoldFleetView({ vehicles, companyId, onUpdateVehicle }: 
           allVehicles={vehicles}
           companyId={companyId}
           onUpdateVehicle={onUpdateVehicle}
-          onSellClick={() => {}}
+          groups={groups}
+          onAddVehicle={onAddVehicle}
+          onAddGroup={onAddGroup}
         />
       )}
     </>

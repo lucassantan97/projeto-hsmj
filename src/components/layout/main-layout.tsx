@@ -34,10 +34,10 @@ export default function MainLayout({
   onLogout,
   onChangeCompany,
   onUpdateVehicle,
-onAddVehicle,
-onAddGroup,
-onUpdateGroup,
-onDeleteGroup,
+  onAddVehicle,
+  onAddGroup,
+  onUpdateGroup,
+  onDeleteGroup,
 }: MainLayoutProps) {
   const companyTheme = COMPANIES[companyId].theme.primary;
   const themeClass = `border-${companyTheme}`;
@@ -84,6 +84,9 @@ onDeleteGroup,
             vehicles={vehicles}
             companyId={companyId}
             onUpdateVehicle={onUpdateVehicle}
+            groups={groups}
+            onAddVehicle={onAddVehicle}
+            onAddGroup={onAddGroup}
           />
         </TabsContent>
         <TabsContent value="dashboard">

@@ -1,10 +1,12 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '../ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
-import type { Vehicle, CompanyId, MaintenanceItem } from '@/lib/types';
+import type { Vehicle, CompanyId, MaintenanceItem, Group, Sale } from '@/lib/types';
 import { COMPANIES } from '@/lib/types';
 import { formatCurrency, cn } from '@/lib/utils';
 import { Handshake, Pencil, Building, ArrowRightLeft, FileText, Undo2, Edit, CloudUpload, Wrench, Plus, Loader2, BrainCircuit } from 'lucide-react';
@@ -12,6 +14,9 @@ import { extractMaintenanceDataAction, analyzeMaintenanceHistoryAction } from '@
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '../ui/scroll-area';
 import { Badge } from '../ui/badge';
+import AddEditVehicleModal from './add-edit-vehicle-modal';
+import SellVehicleModal from './sell-vehicle-modal';
+import TransferGroupModal from './transfer-group-modal';
 
 interface VehicleDetailsModalProps {
   isOpen: boolean;
@@ -19,11 +24,22 @@ interface VehicleDetailsModalProps {
   vehicle: Vehicle | null;
   allVehicles: Vehicle[];
   companyId: CompanyId;
+  groups: Group[];
   onUpdateVehicle: (vehicle: Vehicle) => void;
-  onSellClick: (vehicle: Vehicle) => void;
+  onAddVehicle: (vehicleData: Omit<Vehicle, 'id'>) => void;
+  onAddGroup: (group: Omit<Group, 'id'>) => void;
 }
 
-export default function VehicleDetailsModal({ isOpen, setIsOpen, vehicle, companyId, onUpdateVehicle, onSellClick }: VehicleDetailsModalProps) {
+export default function VehicleDetailsModal({ 
+    isOpen, 
+    setIsOpen, 
+    vehicle, 
+    companyId, 
+    groups, 
+    onUpdateVehicle, 
+    onAddVehicle, 
+    onAddGroup 
+}: VehicleDetailsModalProps) {
   const { toast } = useToast();
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [isAiAnalysisLoading, setIsAiAnalysisLoading] = useState(false);
@@ -34,6 +50,10 @@ export default function VehicleDetailsModal({ isOpen, setIsOpen, vehicle, compan
   const [maintKm, setMaintKm] = useState('');
   const [maintFornecedor, setMaintFornecedor] = useState('');
   const [aiAnalysisResult, setAiAnalysisResult] = useState<string | null>(null);
+
+  const [isEditModalOpen, setEditModalOpen] = useState(false);
+  const [isSellModalOpen, setSellModalOpen] = useState(false);
+  const [isTransferGroupModalOpen, setTransferGroupModalOpen] = useState(false);
 
   const otherCompany = companyId === 'HS' ? 'MJ' : 'HS';
 
@@ -50,6 +70,120 @@ export default function VehicleDetailsModal({ isOpen, setIsOpen, vehicle, compan
   useEffect(() => {
     if(isOpen) resetForm();
   }, [isOpen]);
+
+  const handleMoveCompany = () => {
+    if (!vehicle) return;
+    onUpdateVehicle({ ...vehicle, empresa: otherCompany });
+    toast({ title: 'Veículo Movido', description: `O veículo ${vehicle.placa} foi movido para a empresa ${otherCompany}.` });
+    setIsOpen(false);
+  };
+  
+  const handleTransferGroup = (newGroupId: string) => {
+    if (!vehicle) return;
+    onUpdateVehicle({ ...vehicle, cliente: newGroupId });
+    setTransferGroupModalOpen(false);
+    toast({ title: 'Grupo Transferido', description: `O veículo ${vehicle.placa} foi movido para o grupo ${newGroupId}.` });
+  };
+
+  const handleEditClick = () => {
+    setIsOpen(false); // Close details
+    setEditModalOpen(true); // Open edit
+  };
+
+  const handleSellClick = () => {
+    setIsOpen(false);
+    setSellModalOpen(true);
+  };
+  
+  const handleCancelSale = () => {
+    if(!vehicle) return;
+    const { vendaInfo, ...restOfVehicle } = vehicle;
+    onUpdateVehicle({ ...restOfVehicle, status: 'ativo' });
+    toast({ title: 'Venda Cancelada', description: `O veículo ${vehicle.placa} está ativo novamente.` });
+  };
+
+  const handleSaveVehicle = (vehicleData: Omit<Vehicle, 'id'>) => {
+    if(vehicle) {
+      onUpdateVehicle({ ...vehicle, ...vehicleData });
+    } else {
+      onAddVehicle(vehicleData)
+    }
+  }
+
+  const handleSold = (saleInfo: Sale) => {
+    if (!vehicle) return;
+    onUpdateVehicle({ ...vehicle, status: 'vendido', vendaInfo: saleInfo });
+  };
+
+  const generatePDF = () => {
+    if (!vehicle) return;
+    const doc = new jsPDF();
+    const company = COMPANIES[vehicle.empresa];
+  
+    doc.setFontSize(18);
+    doc.text(`Ficha do Veículo - ${company.name}`, 14, 22);
+    doc.setFontSize(11);
+    doc.setTextColor(100);
+  
+    const vehicleDetails = [
+      ["Placa", vehicle.placa],
+      ["Modelo", vehicle.modelo],
+      ["Grupo/Cliente", vehicle.cliente],
+      ["Ano/Modelo", vehicle.anoModelo || 'N/A'],
+      ["Renavam", vehicle.renavam || 'N/A'],
+      ["Chassi", vehicle.chassi || 'N/A'],
+      ["Data da Compra", vehicle.dataEntrada ? new Date(vehicle.dataEntrada).toLocaleDateString('pt-BR', {timeZone: 'UTC'}) : 'N/A'],
+      ["Valor de Compra", formatCurrency(vehicle.valorCompra)],
+    ];
+    
+    (doc as any).autoTable({
+      startY: 30,
+      head: [['Campo', 'Valor']],
+      body: vehicleDetails,
+      theme: 'striped',
+      headStyles: { fillColor: [30, 58, 138] }, // Primary color
+    });
+  
+    if (vehicle.maintenances && vehicle.maintenances.length > 0) {
+      doc.addPage();
+      doc.setFontSize(18);
+      doc.text("Histórico de Manutenção", 14, 22);
+      
+      vehicle.maintenances.forEach((maint, index) => {
+        const startY = index === 0 ? 30 : (doc as any).lastAutoTable.finalY + 15;
+        
+        doc.setFontSize(12);
+        doc.text(`Manutenção #${index + 1}`, 14, startY);
+        
+        const maintSummary = [
+            ["Data", new Date(maint.data).toLocaleDateString('pt-BR', {timeZone: 'UTC'})],
+            ["KM", maint.km.toLocaleString('pt-BR')],
+            ["Fornecedor", maint.fornecedor],
+            ["Custo Total", formatCurrency(maint.total)],
+        ];
+
+        (doc as any).autoTable({
+          startY: startY + 5,
+          head: [['', '']],
+          body: maintSummary,
+          theme: 'plain',
+          styles: { cellPadding: 1 },
+        });
+
+        const itemsBody = maint.items.map(item => [item.descricao, formatCurrency(item.valor)]);
+        
+        (doc as any).autoTable({
+            startY: (doc as any).lastAutoTable.finalY + 2,
+            head: [['Item', 'Valor']],
+            body: itemsBody,
+            theme: 'grid',
+            headStyles: { fillColor: [100, 116, 139] },
+        });
+      });
+    }
+  
+    doc.save(`Ficha_Veiculo_${vehicle.placa}.pdf`);
+  };
 
   const handleFileUpload = async (file: File) => {
     if (!file || !vehicle) return;
@@ -136,6 +270,7 @@ export default function VehicleDetailsModal({ isOpen, setIsOpen, vehicle, compan
   const companyTheme = COMPANIES[companyId].theme.primary;
 
   return (
+    <>
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogContent className="max-w-5xl max-h-[95vh] flex flex-col p-0">
         <DialogHeader className="p-6 border-b bg-muted/50 rounded-t-lg">
@@ -145,15 +280,15 @@ export default function VehicleDetailsModal({ isOpen, setIsOpen, vehicle, compan
 
         <div className="p-6 overflow-y-auto">
             <div className="flex flex-wrap justify-end mb-6 gap-2">
-                {!isSold && <Button variant="outline" size="sm" onClick={() => onUpdateVehicle({...vehicle, empresa: otherCompany})}><Building className="h-4 w-4 mr-2"/>Mover para {otherCompany}</Button>}
-                {!isSold && <Button variant="outline" size="sm"><ArrowRightLeft className="h-4 w-4 mr-2"/>Transferir Grupo</Button>}
-                {!isSold && <Button variant="outline" size="sm" className="border-orange-500 text-orange-600 hover:bg-orange-50 hover:text-orange-700" onClick={() => onSellClick(vehicle)}><Handshake className="h-4 w-4 mr-2"/>Vender</Button>}
-                <Button variant="outline" size="sm"><Pencil className="h-4 w-4 mr-2"/>Editar</Button>
+                {!isSold && <Button variant="outline" size="sm" onClick={handleMoveCompany}><Building className="h-4 w-4 mr-2"/>Mover para {otherCompany}</Button>}
+                {!isSold && <Button variant="outline" size="sm" onClick={() => setTransferGroupModalOpen(true)}><ArrowRightLeft className="h-4 w-4 mr-2"/>Transferir Grupo</Button>}
+                {!isSold && <Button variant="outline" size="sm" className="border-orange-500 text-orange-600 hover:bg-orange-50 hover:text-orange-700" onClick={handleSellClick}><Handshake className="h-4 w-4 mr-2"/>Vender</Button>}
+                {!isSold && <Button variant="outline" size="sm" onClick={handleEditClick}><Pencil className="h-4 w-4 mr-2"/>Editar</Button>}
                 
-                {isSold && <Button variant="outline" size="sm" className="border-red-500 text-red-600 hover:bg-red-50 hover:text-red-700" onClick={() => onUpdateVehicle({...vehicle, status: 'ativo'})}><Undo2 className="h-4 w-4 mr-2"/>Cancelar Venda</Button>}
-                {isSold && <Button variant="outline" size="sm" className="border-yellow-500 text-yellow-600 hover:bg-yellow-50 hover:text-yellow-700"><Edit className="h-4 w-4 mr-2"/>Editar Venda</Button>}
+                {isSold && <Button variant="outline" size="sm" className="border-red-500 text-red-600 hover:bg-red-50 hover:text-red-700" onClick={handleCancelSale}><Undo2 className="h-4 w-4 mr-2"/>Cancelar Venda</Button>}
+                {isSold && <Button variant="outline" size="sm" className="border-yellow-500 text-yellow-600 hover:bg-yellow-50 hover:text-yellow-700" onClick={handleEditClick}><Edit className="h-4 w-4 mr-2"/>Editar Venda</Button>}
                 
-                <Button variant="outline" size="sm"><FileText className="h-4 w-4 mr-2 text-red-500"/>PDF</Button>
+                <Button variant="outline" size="sm" onClick={generatePDF}><FileText className="h-4 w-4 mr-2 text-red-500"/>PDF</Button>
             </div>
 
             <Card className="bg-muted/30 mb-8">
@@ -173,7 +308,7 @@ export default function VehicleDetailsModal({ isOpen, setIsOpen, vehicle, compan
             <div className="flex flex-col lg:flex-row gap-6 mb-8">
                 <div className="lg:w-1/3">
                     <label htmlFor="fileInput" className={cn("border-2 border-dashed rounded-xl flex flex-col items-center justify-center cursor-pointer relative bg-muted/20 min-h-[200px] p-4 transition-colors hover:border-primary hover:bg-primary/5", isAiLoading && "cursor-wait")}>
-                        <input type="file" id="fileInput" className="absolute inset-0 opacity-0 cursor-pointer" accept="image/*" onChange={(e) => e.target.files && handleFileUpload(e.target.files[0])} disabled={isAiLoading}/>
+                        <input type="file" id="fileInput" className="absolute inset-0 opacity-0 cursor-pointer" accept="image/*,application/pdf" onChange={(e) => e.target.files && handleFileUpload(e.target.files[0])} disabled={isAiLoading}/>
                         <CloudUpload className="h-10 w-10 text-muted-foreground mb-2"/>
                         <p className="font-bold text-foreground text-center text-sm">Arrastar Nota/Foto</p>
                         <p className="text-xs text-muted-foreground mt-1">IA preenche automático</p>
@@ -243,5 +378,30 @@ export default function VehicleDetailsModal({ isOpen, setIsOpen, vehicle, compan
         </div>
       </DialogContent>
     </Dialog>
+    
+    <AddEditVehicleModal 
+        isOpen={isEditModalOpen}
+        setIsOpen={setEditModalOpen}
+        vehicle={vehicle}
+        groups={groups}
+        companyId={companyId}
+        onSave={handleSaveVehicle}
+    />
+    <SellVehicleModal 
+        isOpen={isSellModalOpen}
+        setIsOpen={setSellModalOpen}
+        vehicle={vehicle}
+        onSold={handleSold}
+    />
+    <TransferGroupModal
+        isOpen={isTransferGroupModalOpen}
+        setIsOpen={setTransferGroupModalOpen}
+        groups={groups}
+        companyId={companyId}
+        onTransfer={handleTransferGroup}
+        onAddGroup={onAddGroup}
+        currentVehicle={vehicle}
+    />
+    </>
   );
 }
