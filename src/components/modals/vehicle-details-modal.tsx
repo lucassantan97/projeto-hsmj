@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '../ui/button';
-import { Card, CardContent } from '../ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import type { Vehicle, CompanyId, MaintenanceItem } from '@/lib/types';
 import { COMPANIES } from '@/lib/types';
 import { formatCurrency, cn } from '@/lib/utils';
