@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useForm, SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -28,6 +28,7 @@ interface AddEditVehicleModalProps {
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
   vehicle: Vehicle | null;
+  allVehicles: Vehicle[];
   groups: Group[];
   companyId: CompanyId;
   onSave: (data: Omit<Vehicle, 'id' | 'status' | 'empresa'> & {empresa: CompanyId; status: 'ativo'}) => void;
@@ -37,6 +38,7 @@ export default function AddEditVehicleModal({
   isOpen,
   setIsOpen,
   vehicle,
+  allVehicles,
   groups,
   companyId,
   onSave,
@@ -56,6 +58,12 @@ export default function AddEditVehicleModal({
   });
   
   const companyTheme = COMPANIES[companyId].theme.primary;
+
+  const vehicleModels = useMemo(() => {
+    if (!allVehicles) return [];
+    const models = allVehicles.map(v => v.modelo.trim());
+    return [...new Set(models)].sort();
+  }, [allVehicles]);
 
   useEffect(() => {
     if (vehicle) {
@@ -119,7 +127,12 @@ export default function AddEditVehicleModal({
                         <FormItem>
                         <FormLabel className="text-xs uppercase font-bold text-muted-foreground">Modelo</FormLabel>
                         <FormControl>
-                            <Input {...field} />
+                            <div>
+                                <Input {...field} list="existingModelsList" autoComplete="off" placeholder="Ex: Fiat Strada"/>
+                                <datalist id="existingModelsList">
+                                    {vehicleModels.map(model => <option key={model} value={model} />)}
+                                </datalist>
+                            </div>
                         </FormControl>
                         <FormMessage />
                         </FormItem>

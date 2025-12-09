@@ -158,6 +158,7 @@ export default function ActiveFleetView({
         isOpen={isVehicleModalOpen}
         setIsOpen={setVehicleModalOpen}
         vehicle={editingVehicle}
+        allVehicles={allVehicles}
         groups={groups}
         companyId={companyId}
         onSave={(vehicleData) => {

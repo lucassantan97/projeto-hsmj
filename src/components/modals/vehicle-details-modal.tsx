@@ -34,6 +34,7 @@ export default function VehicleDetailsModal({
     isOpen, 
     setIsOpen, 
     vehicle, 
+    allVehicles,
     companyId, 
     groups, 
     onUpdateVehicle, 
@@ -383,6 +384,7 @@ export default function VehicleDetailsModal({
         isOpen={isEditModalOpen}
         setIsOpen={setEditModalOpen}
         vehicle={vehicle}
+        allVehicles={allVehicles}
         groups={groups}
         companyId={companyId}
         onSave={handleSaveVehicle}
