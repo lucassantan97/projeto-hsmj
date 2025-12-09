@@ -25,29 +25,16 @@ const AppShell = () => {
 
   const handleFirebaseAuth = useCallback((fbUser: FirebaseUser | null) => {
     if (fbUser) {
-      if (fbUser.email?.toLowerCase() === 'hs@hslocadora.com') {
-        const appUser: User = {
-          name: fbUser.displayName || 'Analista',
-          avatarUrl: fbUser.photoURL || `https://i.pravatar.cc/150?u=${fbUser.email}`
-        };
-        setUser(appUser);
-        const lastCompany = localStorage.getItem('fleetwise_last_company') as CompanyId | null;
-        if (lastCompany) {
-          handleCompanySelect(lastCompany);
-        } else {
-          setAuthState('company-select');
-        }
+      const appUser: User = {
+        name: fbUser.displayName || 'Analista',
+        avatarUrl: fbUser.photoURL || `https://i.pravatar.cc/150?u=${fbUser.email}`
+      };
+      setUser(appUser);
+      const lastCompany = localStorage.getItem('fleetwise_last_company') as CompanyId | null;
+      if (lastCompany) {
+        handleCompanySelect(lastCompany);
       } else {
-        toast({
-          variant: 'destructive',
-          title: 'Acesso Negado',
-          description: 'Este e-mail não tem permissão para acessar o sistema.',
-        });
-        if (auth) {
-          signOut(auth);
-        }
-        setUser(null);
-        setAuthState('login');
+        setAuthState('company-select');
       }
     } else {
       setUser(null);
