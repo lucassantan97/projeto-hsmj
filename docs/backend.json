@@ -1,0 +1,327 @@
+{
+  "entities": {
+    "Vehicle": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Vehicle",
+      "type": "object",
+      "description": "Represents a vehicle in the fleet.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the vehicle."
+        },
+        "empresa": {
+          "type": "string",
+          "description": "The company the vehicle belongs to (HS or MJ)."
+        },
+        "placa": {
+          "type": "string",
+          "description": "The license plate number of the vehicle."
+        },
+        "modelo": {
+          "type": "string",
+          "description": "The model of the vehicle."
+        },
+        "cliente": {
+          "type": "string",
+          "description": "The client or group the vehicle is assigned to."
+        },
+        "renavam": {
+          "type": "string",
+          "description": "The Renavam number of the vehicle."
+        },
+        "chassi": {
+          "type": "string",
+          "description": "The chassis number of the vehicle."
+        },
+        "anoModelo": {
+          "type": "string",
+          "description": "The year and model of the vehicle."
+        },
+        "dataEntrada": {
+          "type": "string",
+          "description": "The date the vehicle entered the fleet.",
+          "format": "date"
+        },
+        "valorCompra": {
+          "type": "number",
+          "description": "The purchase price of the vehicle."
+        },
+        "status": {
+          "type": "string",
+          "description": "The current status of the vehicle (e.g., active, sold)."
+        },
+        "vendaInfo": {
+          "type": "string",
+          "description": "Reference to SaleInformation. (Relationship: Vehicle 1:1 SaleInformation)"
+        }
+      },
+      "required": [
+        "id",
+        "empresa",
+        "placa",
+        "modelo",
+        "cliente",
+        "status"
+      ]
+    },
+    "MaintenanceRecord": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "MaintenanceRecord",
+      "type": "object",
+      "description": "Represents a maintenance record for a vehicle.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the maintenance record."
+        },
+        "vehicleId": {
+          "type": "string",
+          "description": "Reference to Vehicle. (Relationship: Vehicle 1:N MaintenanceRecord)"
+        },
+        "data": {
+          "type": "string",
+          "description": "The date the maintenance was performed.",
+          "format": "date"
+        },
+        "km": {
+          "type": "number",
+          "description": "The odometer reading at the time of maintenance."
+        },
+        "fornecedor": {
+          "type": "string",
+          "description": "The name of the maintenance provider."
+        },
+        "items": {
+          "type": "array",
+          "description": "A list of maintenance items.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "total": {
+          "type": "number",
+          "description": "The total cost of the maintenance."
+        }
+      },
+      "required": [
+        "id",
+        "vehicleId",
+        "data",
+        "km",
+        "fornecedor",
+        "items",
+        "total"
+      ]
+    },
+    "SaleInformation": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "SaleInformation",
+      "type": "object",
+      "description": "Represents the sale information for a sold vehicle.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the sale information."
+        },
+        "vehicleId": {
+          "type": "string",
+          "description": "Reference to Vehicle. (Relationship: Vehicle 1:1 SaleInformation)"
+        },
+        "dataVenda": {
+          "type": "string",
+          "description": "The date the vehicle was sold.",
+          "format": "date"
+        },
+        "valorVenda": {
+          "type": "number",
+          "description": "The sale price of the vehicle."
+        },
+        "comprador": {
+          "type": "string",
+          "description": "The name of the buyer."
+        },
+        "salesDescription": {
+          "type": "string",
+          "description": "Description of the vehicle sale."
+        }
+      },
+      "required": [
+        "id",
+        "vehicleId",
+        "dataVenda",
+        "valorVenda",
+        "comprador"
+      ]
+    },
+    "Group": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Group",
+      "type": "object",
+      "description": "Represents a group of vehicles.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the group."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the group."
+        },
+        "company": {
+          "type": "string",
+          "description": "The company the group belongs to (HS or MJ)."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "company"
+      ]
+    },
+    "UserProfile": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "UserProfile",
+      "type": "object",
+      "description": "Represents a user profile.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the user profile."
+        },
+        "displayName": {
+          "type": "string",
+          "description": "The display name of the user."
+        },
+        "email": {
+          "type": "string",
+          "description": "The email address of the user.",
+          "format": "email"
+        },
+        "photoURL": {
+          "type": "string",
+          "description": "The URL of the user's profile photo.",
+          "format": "uri"
+        }
+      },
+      "required": [
+        "id"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}/profile",
+        "definition": {
+          "entityName": "UserProfile",
+          "schema": {
+            "$ref": "#/backend/entities/UserProfile"
+          },
+          "description": "Stores user profile information. Path-based ownership ensures only the authenticated user can access their profile.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/artifacts/sistema-frota-hs-mj-v13-hybrid/users/{userId}/frota/{vehicleId}",
+        "definition": {
+          "entityName": "Vehicle",
+          "schema": {
+            "$ref": "#/backend/entities/Vehicle"
+          },
+          "description": "Stores vehicle data. Includes denormalized 'empresa' and 'cliente' for authorization independence.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            },
+            {
+              "name": "vehicleId",
+              "description": "The unique identifier of the vehicle."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/artifacts/sistema-frota-hs-mj-v13-hybrid/users/{userId}/frota/{vehicleId}/manutencoes/{maintenanceRecordId}",
+        "definition": {
+          "entityName": "MaintenanceRecord",
+          "schema": {
+            "$ref": "#/backend/entities/MaintenanceRecord"
+          },
+          "description": "Stores maintenance records for a specific vehicle.  Authorization is based on the parent vehicle's 'empresa' and user ID, denormalized from the parent document.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            },
+            {
+              "name": "vehicleId",
+              "description": "The unique identifier of the vehicle."
+            },
+            {
+              "name": "maintenanceRecordId",
+              "description": "The unique identifier of the maintenance record."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/artifacts/sistema-frota-hs-mj-v13-hybrid/users/{userId}/config_groups/{groupId}",
+        "definition": {
+          "entityName": "Group",
+          "schema": {
+            "$ref": "#/backend/entities/Group"
+          },
+          "description": "Stores vehicle group configurations for the user.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            },
+            {
+              "name": "groupId",
+              "description": "The unique identifier of the group."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/artifacts/sistema-frota-hs-mj-v13-hybrid/users/{userId}/frota/{vehicleId}/saleInformation/{saleInformationId}",
+        "definition": {
+          "entityName": "SaleInformation",
+          "schema": {
+            "$ref": "#/backend/entities/SaleInformation"
+          },
+          "description": "Stores sale information for sold vehicles. Authorization is based on the parent vehicle's 'empresa' and user ID.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            },
+            {
+              "name": "vehicleId",
+              "description": "The unique identifier of the vehicle."
+            },
+            {
+              "name": "saleInformationId",
+              "description": "The unique identifier of the sale information."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure is designed to ensure authorization independence, clarity, and scalability for the FleetWise AI application. We leverage path-based ownership for user-specific data and membership maps with denormalization for collaborative data access. The structure supports QAPs by segregating data based on access needs and using dedicated collections for global roles, eliminating the need for filtering in rules.\n\nAuthorization Independence is achieved by avoiding hierarchical authorization dependencies (`get()` calls in security rules). For example, access to `vehicles` and `maintenanceRecords` is governed by the user ID and the denormalized `empresa` (company) field, enabling atomic operations and simplified security rules. The structure also denormalizes group information. The `vehicles` collection stores the group name (`cliente`). This eliminates the need for rules to fetch the group document to validate access.\n\nQAPs (Rules are not Filters) are supported by:\n\n1.  **Path-based ownership** for private user data (UserProfile), ensuring only the authenticated user can access their profile.\n2.  **Segregation of data** based on company (`empresa` field in `vehicles`) simplifying list operations as each collection has a homogeneous security posture.\n3.  **Denormalization** of authorization data so that rules can perform validation without external reads.\n\nThe design employs explicit state modeling using the `status` field in the `Vehicle` entity, which simplifies querying and ensures data predictability. Semantic naming conventions are used throughout the structure to improve readability and maintainability."
+  }
+}

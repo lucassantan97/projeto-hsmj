@@ -1,0 +1,224 @@
+/**
+ * This ruleset enforces a strict user-ownership model for a fleet management application.
+ * All user-generated data is stored within a user-specific path, ensuring that users can only
+ * access and manage their own information.
+ *
+ * Core Philosophy:
+ * The security model is centered on path-based ownership. Every document is located
+ * under a path containing the user's unique ID (e.g., `/users/{userId}/...`). This structure
+ * inherently isolates user data, making rules simple, performant, and secure by default.
+ *
+ * Data Structure:
+ * - /users/{userId}/profile: A single document for a user's profile.
+ * - /artifacts/sistema-frota-hs-mj-v13-hybrid/users/{userId}/...: A dedicated, versioned
+ *   path containing all fleet management data for a specific user. This includes:
+ *   - /frota/{vehicleId}: Contains vehicle documents.
+ *   - /frota/{vehicleId}/manutencoes/{recordId}: Subcollection for maintenance records.
+ *   - /frota/{vehicleId}/saleInformation/{saleId}: Subcollection for sale details.
+ *   - /config_groups/{groupId}: Subcollection for vehicle group configurations.
+ *
+ * Key Security Decisions:
+ * - Default Deny: All paths are closed by default. Access is only granted explicitly.
+ * - Strict Ownership: All operations (read, write, delete) are restricted to the
+ *   authenticated user whose UID matches the `{userId}` in the document path.
+ * - No Public Data: There are no globally readable collections. All data is private.
+ * - No User Listing: It is not possible to list all users in the system.
+ * - Relational Integrity: On document creation, rules validate that internal ID fields
+ *   (e.g., `vehicleId`) match the corresponding IDs in the document path. These fields are
+ *   enforced as immutable upon update to maintain data consistency.
+ *
+ * Denormalization for Authorization:
+ * Authorization is based entirely on the `{userId}` wildcard in the document path. This
+ * avoids the need for slow and costly `get()` calls to other documents to verify
+ * ownership, resulting in a highly performant and scalable security model.
+ *
+ * Structural Segregation:
+ * All user data is segregated into distinct subcollections under their unique user ID,
+ * preventing data leakage between users and simplifying list queries.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ------------------------------------------------------------------------
+    // Helper Functions
+    // ------------------------------------------------------------------------
+
+    /**
+     * Checks if the user is authenticated.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * Checks if the currently authenticated user's UID matches the provided userId.
+     */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    /**
+     * Checks for ownership on an existing document. Used for update/delete operations.
+     */
+    function isExistingOwner(userId) {
+      return isOwner(userId) && resource != null;
+    }
+
+    /**
+     * On create, validates that the user profile's internal ID matches the document path.
+     */
+    function hasValidUserProfileData(userId) {
+      return request.resource.data.id == userId;
+    }
+
+    /**
+     * On update, ensures the user profile's internal ID is immutable.
+     */
+    function isUserProfileDataImmutable() {
+      return request.resource.data.id == resource.data.id;
+    }
+    
+    /**
+     * On create, validates that the vehicle's internal ID matches the document path.
+     */
+    function hasValidVehicleData(vehicleId) {
+      return request.resource.data.id == vehicleId;
+    }
+
+    /**
+     * On update, ensures the vehicle's internal ID is immutable.
+     */
+    function isVehicleDataImmutable() {
+      return request.resource.data.id == resource.data.id;
+    }
+
+    /**
+     * On create, validates relational IDs for a new maintenance record.
+     */
+    function hasValidMaintenanceData(vehicleId, maintenanceRecordId) {
+      return request.resource.data.id == maintenanceRecordId && request.resource.data.vehicleId == vehicleId;
+    }
+
+    /**
+     * On update, ensures relational IDs for a maintenance record are immutable.
+     */
+    function isMaintenanceDataImmutable() {
+      return request.resource.data.id == resource.data.id && request.resource.data.vehicleId == resource.data.vehicleId;
+    }
+
+    /**
+     * On create, validates relational IDs for new sale information.
+     */
+    function hasValidSaleData(vehicleId, saleInformationId) {
+      return request.resource.data.id == saleInformationId && request.resource.data.vehicleId == vehicleId;
+    }
+    
+    /**
+     * On update, ensures relational IDs for sale information are immutable.
+     */
+    function isSaleDataImmutable() {
+      return request.resource.data.id == resource.data.id && request.resource.data.vehicleId == resource.data.vehicleId;
+    }
+
+    /**
+     * On create, validates that the group's internal ID matches the document path.
+     */
+    function hasValidGroupData(groupId) {
+      return request.resource.data.id == groupId;
+    }
+
+    /**
+     * On update, ensures the group's internal ID is immutable.
+     */
+    function isGroupDataImmutable() {
+      return request.resource.data.id == resource.data.id;
+    }
+
+    // ------------------------------------------------------------------------
+    // User Profile Rules
+    // ------------------------------------------------------------------------
+
+    /**
+     * @description Controls access to a user's own profile document.
+     * @path /users/{userId}/profile
+     * @allow (get/update/delete) A signed-in user accessing their own profile document.
+     * @deny (get/create/update/delete) A user trying to access another user's profile.
+     * @principle Restricts access to a user's own data tree.
+     */
+    match /users/{userId}/profile {
+      allow get: if isOwner(userId);
+      allow list: if false; // This is a single document path, list is not applicable.
+      allow create: if isOwner(userId) && hasValidUserProfileData(userId);
+      allow update: if isExistingOwner(userId) && isUserProfileDataImmutable();
+      allow delete: if isExistingOwner(userId);
+    }
+
+    // ------------------------------------------------------------------------
+    // Application Data Rules
+    // ------------------------------------------------------------------------
+
+    match /artifacts/sistema-frota-hs-mj-v13-hybrid/users/{userId} {
+
+      /**
+       * @description Controls access to the collection of vehicles owned by a user.
+       * @path /artifacts/sistema-frota-hs-mj-v13-hybrid/users/{userId}/frota/{vehicleId}
+       * @allow (create) User 'abc' creating a new vehicle in their own /frota collection.
+       * @deny (list) User 'xyz' trying to list vehicles belonging to user 'abc'.
+       * @principle Enforces strict ownership for all CRUD operations on a user's data.
+       */
+      match /frota/{vehicleId} {
+        allow get: if isOwner(userId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) && hasValidVehicleData(vehicleId);
+        allow update: if isExistingOwner(userId) && isVehicleDataImmutable();
+        allow delete: if isExistingOwner(userId);
+
+        /**
+         * @description Controls access to maintenance records for a specific vehicle.
+         * @path /artifacts/sistema-frota-hs-mj-v13-hybrid/users/{userId}/frota/{vehicleId}/manutencoes/{maintenanceRecordId}
+         * @allow (get) User 'abc' reading a maintenance record for one of their own vehicles.
+         * @deny (create) User 'xyz' trying to add a maintenance record to a vehicle owned by 'abc'.
+         * @principle Inherits ownership from the parent user path for secure subcollection access.
+         */
+        match /manutencoes/{maintenanceRecordId} {
+          allow get: if isOwner(userId);
+          allow list: if isOwner(userId);
+          allow create: if isOwner(userId) && hasValidMaintenanceData(vehicleId, maintenanceRecordId);
+          allow update: if isExistingOwner(userId) && isMaintenanceDataImmutable();
+          allow delete: if isExistingOwner(userId);
+        }
+
+        /**
+         * @description Controls access to sale information for a specific vehicle.
+         * @path /artifacts/sistema-frota-hs-mj-v13-hybrid/users/{userId}/frota/{vehicleId}/saleInformation/{saleInformationId}
+         * @allow (create) User 'abc' adding sale information to one of their own vehicles.
+         * @deny (update) User 'xyz' attempting to modify sale info on a vehicle owned by 'abc'.
+         * @principle Inherits ownership from the parent user path for secure subcollection access.
+         */
+        match /saleInformation/{saleInformationId} {
+          allow get: if isOwner(userId);
+          allow list: if isOwner(userId);
+          allow create: if isOwner(userId) && hasValidSaleData(vehicleId, saleInformationId);
+          allow update: if isExistingOwner(userId) && isSaleDataImmutable();
+          allow delete: if isExistingOwner(userId);
+        }
+      }
+
+      /**
+       * @description Controls access to user-defined vehicle groups.
+       * @path /artifacts/sistema-frota-hs-mj-v13-hybrid/users/{userId}/config_groups/{groupId}
+       * @allow (list) User 'abc' listing their own configured groups.
+       * @deny (delete) User 'xyz' trying to delete a group belonging to user 'abc'.
+       * @principle Enforces strict ownership for all CRUD operations on a user's configuration data.
+       */
+      match /config_groups/{groupId} {
+        allow get: if isOwner(userId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) && hasValidGroupData(groupId);
+        allow update: if isExistingOwner(userId) && isGroupDataImmutable();
+        allow delete: if isExistingOwner(userId);
+      }
+    }
+  }
+}
