@@ -49,13 +49,13 @@ export default function ManageGroupsModal({
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle className="font-headline text-xl">Gerenciar Grupos</DialogTitle>
-          <DialogDescription>
+          <div className="text-sm text-muted-foreground">
             <Alert className="bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-300 mt-2">
                 <AlertDescription>
                     Crie ou renomeie grupos. As alterações serão refletidas em todos os veículos associados.
                 </AlertDescription>
             </Alert>
-          </DialogDescription>
+          </div>
         </DialogHeader>
         <div className="py-4 space-y-4">
             <div className="flex gap-2">
