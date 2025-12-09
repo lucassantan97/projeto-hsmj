@@ -3,12 +3,37 @@
 import { Button } from '@/components/ui/button';
 import { HsLogo } from '../icons/hs-logo';
 import { MjLogo } from '../icons/mj-logo';
+import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/firebase';
 
-interface LoginScreenProps {
-  onLogin: () => void;
-}
+export default function LoginScreen() {
+  const { toast } = useToast();
+  const auth = useAuth();
 
-export default function LoginScreen({ onLogin }: LoginScreenProps) {
+  const handleLogin = async () => {
+    if (!auth) {
+        toast({
+            variant: "destructive",
+            title: "Erro de Configuração",
+            description: "A autenticação não foi inicializada corretamente.",
+        });
+        return;
+    }
+    const provider = new GoogleAuthProvider();
+    try {
+      await signInWithPopup(auth, provider);
+      // onAuthStateChanged in AppShell will handle the rest
+    } catch (error: any) {
+      console.error("Erro de login:", error);
+      toast({
+        variant: "destructive",
+        title: "Erro ao fazer login",
+        description: error.message || "Ocorreu um erro durante o login com o Google.",
+      });
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-[100] bg-card flex flex-col items-center justify-center transition-opacity duration-500">
       <div className="flex items-center gap-8 mb-10 slide-in-up">
@@ -35,7 +60,7 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
       </h1>
       <p className="text-muted-foreground">FleetWise AI</p>
       <Button
-        onClick={onLogin}
+        onClick={handleLogin}
         className="fade-in flex items-center gap-3 bg-card border shadow-lg hover:bg-muted transition-all mt-8 px-8 py-6 rounded-full"
       >
         <img

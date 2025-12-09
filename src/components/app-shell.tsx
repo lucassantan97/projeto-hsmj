@@ -5,14 +5,15 @@ import LoginScreen from './auth/login-screen';
 import CompanySelector from './auth/company-selector';
 import MainLayout from './layout/main-layout';
 import type { CompanyId, Vehicle, Group, User } from '@/lib/types';
-import { mockUser, mockVehicles, mockGroups } from '@/lib/mock-data';
+import { mockVehicles, mockGroups } from '@/lib/mock-data';
 import AiChatWidget from './ai-chat-widget';
 import { useToast } from '@/hooks/use-toast';
-
-type AuthState = 'login' | 'company-select' | 'app';
+import { onAuthStateChanged, signOut, User as FirebaseUser } from 'firebase/auth';
+import { Loader2 } from 'lucide-react';
+import { useFirebase } from '@/firebase';
 
 const AppShell = () => {
-  const [authState, setAuthState] = useState<AuthState>('login');
+  const [authState, setAuthState] = useState<AuthState>('loading');
   const [user, setUser] = useState<User | null>(null);
   const [selectedCompany, setSelectedCompany] = useState<CompanyId | null>(null);
   
@@ -20,18 +21,44 @@ const AppShell = () => {
   const [groups, setGroups] = useState<Group[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const { auth } = useFirebase();
 
   useEffect(() => {
-    // Simulate initial auth state check
-    const lastCompany = localStorage.getItem('fleetwise_last_company') as CompanyId | null;
-    const loggedInUser = sessionStorage.getItem('fleetwise_user');
-    if (loggedInUser && lastCompany) {
-      handleLogin(true); // Attempt to auto-login
-      handleCompanySelect(lastCompany);
-    } else {
-      // Stay on login screen
-    }
-  }, []);
+    if (!auth) return;
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser: FirebaseUser | null) => {
+      if (firebaseUser) {
+        if (firebaseUser.email?.toLowerCase() === 'hs@hslocadora.com') {
+          const appUser: User = {
+            name: firebaseUser.displayName || 'Analista',
+            avatarUrl: firebaseUser.photoURL || `https://i.pravatar.cc/150?u=${firebaseUser.uid}`
+          };
+          setUser(appUser);
+          const lastCompany = localStorage.getItem('fleetwise_last_company') as CompanyId | null;
+          if (lastCompany) {
+            handleCompanySelect(lastCompany);
+          } else {
+            setAuthState('company-select');
+          }
+        } else {
+          // User is not authorized
+          toast({
+            variant: 'destructive',
+            title: 'Acesso Negado',
+            description: 'Este e-mail não tem permissão para acessar o sistema.',
+          });
+          signOut(auth);
+          setUser(null);
+          setAuthState('login');
+        }
+      } else {
+        // No user is signed in.
+        setUser(null);
+        setAuthState('login');
+      }
+    });
+
+    return () => unsubscribe();
+  }, [toast, auth]);
   
   const loadDataForCompany = useCallback((companyId: CompanyId) => {
     setLoading(true);
@@ -42,21 +69,6 @@ const AppShell = () => {
       setLoading(false);
     }, 500);
   }, []);
-
-  const handleLogin = (isAutoLogin = false) => {
-    const email = isAutoLogin ? 'hs@hslocadora.com' : prompt("Por favor, insira seu e-mail para fazer login:");
-    if (email && email.toLowerCase() === 'hs@hslocadora.com') {
-      setUser(mockUser);
-      setAuthState('company-select');
-      sessionStorage.setItem('fleetwise_user', JSON.stringify(mockUser));
-    } else if (!isAutoLogin) {
-      toast({
-        variant: 'destructive',
-        title: 'Acesso Negado',
-        description: 'O e-mail fornecido não tem permissão para acessar o sistema.',
-      });
-    }
-  };
 
   const handleCompanySelect = (companyId: CompanyId) => {
     setSelectedCompany(companyId);
@@ -74,11 +86,12 @@ const AppShell = () => {
   }
 
   const handleLogout = () => {
+    if (!auth) return;
+    signOut(auth);
     setUser(null);
     setSelectedCompany(null);
     setAuthState('login');
     localStorage.removeItem('fleetwise_last_company');
-    sessionStorage.removeItem('fleetwise_user');
   };
   
   const updateVehicle = (updatedVehicle: Vehicle) => {
@@ -110,10 +123,17 @@ const AppShell = () => {
 
   const renderContent = () => {
     switch (authState) {
+      case 'loading':
+        return (
+          <div className="fixed inset-0 z-[100] bg-card flex flex-col items-center justify-center">
+            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+            <p className="mt-4 text-muted-foreground">Carregando...</p>
+          </div>
+        );
       case 'login':
-        return <LoginScreen onLogin={() => handleLogin()} />;
+        return <LoginScreen />;
       case 'company-select':
-        if (!user) return <LoginScreen onLogin={() => handleLogin()} />; // Should not happen
+        if (!user) return <LoginScreen />; // Should not happen
         return (
           <CompanySelector
             user={user}
@@ -122,7 +142,7 @@ const AppShell = () => {
           />
         );
       case 'app':
-        if (!user || !selectedCompany) return <LoginScreen onLogin={() => handleLogin()} />; // Should not happen
+        if (!user || !selectedCompany) return <LoginScreen />; // Should not happen
         return (
           <MainLayout
             user={user}
@@ -140,7 +160,7 @@ const AppShell = () => {
           />
         );
       default:
-        return <LoginScreen onLogin={() => handleLogin()} />;
+        return <LoginScreen />;
     }
   };
 

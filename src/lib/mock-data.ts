@@ -1,5 +1,7 @@
 import type { User, Vehicle, Group, CompanyId, Maintenance } from './types';
 
+// This mockUser is no longer the primary source of user data,
+// but can be kept for testing or as a fallback structure.
 export const mockUser: User = {
     name: 'Analista',
     avatarUrl: 'https://i.pravatar.cc/150?u=a042581f4e29026704d'
