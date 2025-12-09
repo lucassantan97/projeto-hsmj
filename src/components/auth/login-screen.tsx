@@ -1,23 +1,29 @@
 'use client';
 
-import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { HsLogo } from '../icons/hs-logo';
 import { MjLogo } from '../icons/mj-logo';
-import { Mail } from 'lucide-react';
+import { useFirebase } from '@/firebase';
+import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import { useToast } from '@/hooks/use-toast';
+import { Chrome } from 'lucide-react';
 
-interface LoginScreenProps {
-  onLogin: (email: string) => void;
-}
+export default function LoginScreen() {
+  const { auth } = useFirebase();
+  const { toast } = useToast();
 
-export default function LoginScreen({ onLogin }: LoginScreenProps) {
-  const [email, setEmail] = useState('');
-
-  const handleLogin = () => {
-    const emailToLogin = email || prompt('Por favor, insira seu e-mail para login:');
-    if (emailToLogin) {
-      onLogin(emailToLogin);
+  const handleGoogleLogin = async () => {
+    if (!auth) return;
+    const provider = new GoogleAuthProvider();
+    try {
+      await signInWithPopup(auth, provider);
+    } catch (error: any) {
+      console.error("Erro no login com Google:", error);
+      toast({
+        variant: 'destructive',
+        title: 'Falha no Login',
+        description: error.message || 'Não foi possível fazer login com o Google.',
+      });
     }
   };
 
@@ -48,22 +54,12 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
       <p className="text-muted-foreground">FleetWise AI</p>
 
       <div className="mt-8 flex flex-col items-center gap-4 w-full max-w-sm px-4">
-        <div className="relative w-full">
-            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground h-5 w-5" />
-            <Input 
-                type="email"
-                placeholder="seunome@hslocadora.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
-                className="pl-10 h-12"
-            />
-        </div>
         <Button
-          onClick={handleLogin}
+          onClick={handleGoogleLogin}
           className="w-full flex items-center gap-3 bg-primary text-primary-foreground shadow-lg hover:bg-primary/90 transition-all h-12 rounded-lg"
         >
-          <span className="font-semibold text-base">Entrar com E-mail</span>
+          <Chrome className="h-5 w-5" />
+          <span className="font-semibold text-base">Entrar com Google</span>
         </Button>
       </div>
     </div>

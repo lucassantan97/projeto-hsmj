@@ -8,6 +8,8 @@ import type { CompanyId, Vehicle, Group, User } from '@/lib/types';
 import { mockVehicles, mockGroups } from '@/lib/mock-data';
 import AiChatWidget from './ai-chat-widget';
 import { useToast } from '@/hooks/use-toast';
+import { useFirebase } from '@/firebase';
+import { signOut, User as FirebaseUser } from 'firebase/auth';
 import { Loader2 } from 'lucide-react';
 
 const AppShell = () => {
@@ -19,42 +21,46 @@ const AppShell = () => {
   const [groups, setGroups] = useState<Group[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const { auth, isUserLoading, user: firebaseUser } = useFirebase();
 
-  useEffect(() => {
-    const loggedInUser = sessionStorage.getItem('fleetwise_user');
-    if (loggedInUser) {
-      const appUser: User = { name: 'Analista', avatarUrl: `https://i.pravatar.cc/150?u=hs@hslocadora.com` };
-      setUser(appUser);
-      const lastCompany = localStorage.getItem('fleetwise_last_company') as CompanyId | null;
-      if (lastCompany) {
-        handleCompanySelect(lastCompany);
+  const handleFirebaseAuth = useCallback((fbUser: FirebaseUser | null) => {
+    if (fbUser) {
+      if (fbUser.email?.toLowerCase() === 'hs@hslocadora.com') {
+        const appUser: User = {
+          name: fbUser.displayName || 'Analista',
+          avatarUrl: fbUser.photoURL || `https://i.pravatar.cc/150?u=${fbUser.email}`
+        };
+        setUser(appUser);
+        const lastCompany = localStorage.getItem('fleetwise_last_company') as CompanyId | null;
+        if (lastCompany) {
+          handleCompanySelect(lastCompany);
+        } else {
+          setAuthState('company-select');
+        }
       } else {
-        setAuthState('company-select');
+        toast({
+          variant: 'destructive',
+          title: 'Acesso Negado',
+          description: 'Este e-mail não tem permissão para acessar o sistema.',
+        });
+        if (auth) {
+          signOut(auth);
+        }
+        setUser(null);
+        setAuthState('login');
       }
     } else {
+      setUser(null);
       setAuthState('login');
     }
-  }, []);
+  }, [auth, toast]);
 
-  
-  const handleLogin = (email: string) => {
-    if (email.toLowerCase() === 'hs@hslocadora.com') {
-      const appUser: User = {
-        name: 'Analista',
-        avatarUrl: `https://i.pravatar.cc/150?u=${email}`
-      };
-      setUser(appUser);
-      setAuthState('company-select');
-      sessionStorage.setItem('fleetwise_user', email);
-    } else {
-      toast({
-        variant: 'destructive',
-        title: 'Acesso Negado',
-        description: 'Este e-mail não tem permissão para acessar o sistema.',
-      });
+  useEffect(() => {
+    if (!isUserLoading) {
+      handleFirebaseAuth(firebaseUser);
     }
-  };
-  
+  }, [isUserLoading, firebaseUser, handleFirebaseAuth]);
+
   const loadDataForCompany = useCallback((companyId: CompanyId) => {
     setLoading(true);
     // Simulate fetching data
@@ -81,11 +87,13 @@ const AppShell = () => {
   }
 
   const handleLogout = () => {
+    if (auth) {
+      signOut(auth);
+    }
     setUser(null);
     setSelectedCompany(null);
     setAuthState('login');
     localStorage.removeItem('fleetwise_last_company');
-    sessionStorage.removeItem('fleetwise_user');
   };
   
   const updateVehicle = (updatedVehicle: Vehicle) => {
@@ -116,18 +124,20 @@ const AppShell = () => {
 
 
   const renderContent = () => {
+    if (authState === 'loading' || isUserLoading) {
+      return (
+        <div className="fixed inset-0 z-[100] bg-card flex flex-col items-center justify-center">
+          <Loader2 className="h-12 w-12 animate-spin text-primary" />
+          <p className="mt-4 text-muted-foreground">Carregando...</p>
+        </div>
+      );
+    }
+
     switch (authState) {
-      case 'loading':
-        return (
-          <div className="fixed inset-0 z-[100] bg-card flex flex-col items-center justify-center">
-            <Loader2 className="h-12 w-12 animate-spin text-primary" />
-            <p className="mt-4 text-muted-foreground">Carregando...</p>
-          </div>
-        );
       case 'login':
-        return <LoginScreen onLogin={handleLogin} />;
+        return <LoginScreen />;
       case 'company-select':
-        if (!user) return <LoginScreen onLogin={handleLogin}/>; // Should not happen
+        if (!user) return <LoginScreen />; // Should not happen
         return (
           <CompanySelector
             user={user}
@@ -136,7 +146,7 @@ const AppShell = () => {
           />
         );
       case 'app':
-        if (!user || !selectedCompany) return <LoginScreen onLogin={handleLogin}/>; // Should not happen
+        if (!user || !selectedCompany) return <LoginScreen />; // Should not happen
         return (
           <MainLayout
             user={user}
@@ -150,11 +160,11 @@ const AppShell = () => {
             onAddVehicle={addVehicle}
             onAddGroup={addGroup}
             onUpdateGroup={onUpdateGroup}
-            onDeleteGroup={deleteGroup}
+            onDeleteGroup={onDeleteGroup}
           />
         );
       default:
-        return <LoginScreen onLogin={handleLogin}/>;
+        return <LoginScreen />;
     }
   };
 
