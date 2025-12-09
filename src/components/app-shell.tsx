@@ -32,10 +32,9 @@ const AppShell = () => {
   }, []);
   
   useEffect(() => {
-    const lastCompany = localStorage.getItem('fleetwise_last_company') as CompanyId | null;
-    if (lastCompany) {
-      handleCompanySelect(lastCompany);
-    }
+    // No auth, go straight to company select
+    setAuthState('company-select');
+    setLoading(false); // No data to load initially
   }, []);
 
   const handleCompanySelect = (companyId: CompanyId) => {
@@ -108,8 +107,8 @@ const AppShell = () => {
             onUpdateVehicle={updateVehicle}
             onAddVehicle={addVehicle}
             onAddGroup={addGroup}
-            onUpdateGroup={onUpdateGroup}
-            onDeleteGroup={onDeleteGroup}
+            onUpdateGroup={updateGroup}
+            onDeleteGroup={deleteGroup}
           />
         );
       default:
