@@ -8,12 +8,10 @@ import type { CompanyId, Vehicle, Group, User } from '@/lib/types';
 import { mockVehicles, mockGroups } from '@/lib/mock-data';
 import AiChatWidget from './ai-chat-widget';
 import { useToast } from '@/hooks/use-toast';
-import { onAuthStateChanged, signOut, User as FirebaseUser } from 'firebase/auth';
 import { Loader2 } from 'lucide-react';
-import { useFirebase } from '@/firebase';
 
 const AppShell = () => {
-  const [authState, setAuthState] = useState<AuthState>('loading');
+  const [authState, setAuthState] = useState<'loading' | 'login' | 'company-select' | 'app'>('loading');
   const [user, setUser] = useState<User | null>(null);
   const [selectedCompany, setSelectedCompany] = useState<CompanyId | null>(null);
   
@@ -21,44 +19,41 @@ const AppShell = () => {
   const [groups, setGroups] = useState<Group[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
-  const { auth } = useFirebase();
 
   useEffect(() => {
-    if (!auth) return;
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser: FirebaseUser | null) => {
-      if (firebaseUser) {
-        if (firebaseUser.email?.toLowerCase() === 'hs@hslocadora.com') {
-          const appUser: User = {
-            name: firebaseUser.displayName || 'Analista',
-            avatarUrl: firebaseUser.photoURL || `https://i.pravatar.cc/150?u=${firebaseUser.uid}`
-          };
-          setUser(appUser);
-          const lastCompany = localStorage.getItem('fleetwise_last_company') as CompanyId | null;
-          if (lastCompany) {
-            handleCompanySelect(lastCompany);
-          } else {
-            setAuthState('company-select');
-          }
-        } else {
-          // User is not authorized
-          toast({
-            variant: 'destructive',
-            title: 'Acesso Negado',
-            description: 'Este e-mail não tem permissão para acessar o sistema.',
-          });
-          signOut(auth);
-          setUser(null);
-          setAuthState('login');
-        }
+    const loggedInUser = sessionStorage.getItem('fleetwise_user');
+    if (loggedInUser) {
+      const appUser: User = { name: 'Analista', avatarUrl: `https://i.pravatar.cc/150?u=hs@hslocadora.com` };
+      setUser(appUser);
+      const lastCompany = localStorage.getItem('fleetwise_last_company') as CompanyId | null;
+      if (lastCompany) {
+        handleCompanySelect(lastCompany);
       } else {
-        // No user is signed in.
-        setUser(null);
-        setAuthState('login');
+        setAuthState('company-select');
       }
-    });
+    } else {
+      setAuthState('login');
+    }
+  }, []);
 
-    return () => unsubscribe();
-  }, [toast, auth]);
+  
+  const handleLogin = (email: string) => {
+    if (email.toLowerCase() === 'hs@hslocadora.com') {
+      const appUser: User = {
+        name: 'Analista',
+        avatarUrl: `https://i.pravatar.cc/150?u=${email}`
+      };
+      setUser(appUser);
+      setAuthState('company-select');
+      sessionStorage.setItem('fleetwise_user', email);
+    } else {
+      toast({
+        variant: 'destructive',
+        title: 'Acesso Negado',
+        description: 'Este e-mail não tem permissão para acessar o sistema.',
+      });
+    }
+  };
   
   const loadDataForCompany = useCallback((companyId: CompanyId) => {
     setLoading(true);
@@ -86,12 +81,11 @@ const AppShell = () => {
   }
 
   const handleLogout = () => {
-    if (!auth) return;
-    signOut(auth);
     setUser(null);
     setSelectedCompany(null);
     setAuthState('login');
     localStorage.removeItem('fleetwise_last_company');
+    sessionStorage.removeItem('fleetwise_user');
   };
   
   const updateVehicle = (updatedVehicle: Vehicle) => {
@@ -131,9 +125,9 @@ const AppShell = () => {
           </div>
         );
       case 'login':
-        return <LoginScreen />;
+        return <LoginScreen onLogin={handleLogin} />;
       case 'company-select':
-        if (!user) return <LoginScreen />; // Should not happen
+        if (!user) return <LoginScreen onLogin={handleLogin}/>; // Should not happen
         return (
           <CompanySelector
             user={user}
@@ -142,7 +136,7 @@ const AppShell = () => {
           />
         );
       case 'app':
-        if (!user || !selectedCompany) return <LoginScreen />; // Should not happen
+        if (!user || !selectedCompany) return <LoginScreen onLogin={handleLogin}/>; // Should not happen
         return (
           <MainLayout
             user={user}
@@ -155,12 +149,12 @@ const AppShell = () => {
             onUpdateVehicle={updateVehicle}
             onAddVehicle={addVehicle}
             onAddGroup={addGroup}
-            onUpdateGroup={updateGroup}
+            onUpdateGroup={onUpdateGroup}
             onDeleteGroup={deleteGroup}
           />
         );
       default:
-        return <LoginScreen />;
+        return <LoginScreen onLogin={handleLogin}/>;
     }
   };
 

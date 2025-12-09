@@ -1,36 +1,23 @@
 'use client';
 
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { HsLogo } from '../icons/hs-logo';
 import { MjLogo } from '../icons/mj-logo';
-import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
-import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/firebase';
+import { Mail } from 'lucide-react';
 
-export default function LoginScreen() {
-  const { toast } = useToast();
-  const auth = useAuth();
+interface LoginScreenProps {
+  onLogin: (email: string) => void;
+}
 
-  const handleLogin = async () => {
-    if (!auth) {
-        toast({
-            variant: "destructive",
-            title: "Erro de Configuração",
-            description: "A autenticação não foi inicializada corretamente.",
-        });
-        return;
-    }
-    const provider = new GoogleAuthProvider();
-    try {
-      await signInWithPopup(auth, provider);
-      // onAuthStateChanged in AppShell will handle the rest
-    } catch (error: any) {
-      console.error("Erro de login:", error);
-      toast({
-        variant: "destructive",
-        title: "Erro ao fazer login",
-        description: error.message || "Ocorreu um erro durante o login com o Google.",
-      });
+export default function LoginScreen({ onLogin }: LoginScreenProps) {
+  const [email, setEmail] = useState('');
+
+  const handleLogin = () => {
+    const emailToLogin = email || prompt('Por favor, insira seu e-mail para login:');
+    if (emailToLogin) {
+      onLogin(emailToLogin);
     }
   };
 
@@ -59,17 +46,26 @@ export default function LoginScreen() {
         Portal de Gestão BI
       </h1>
       <p className="text-muted-foreground">FleetWise AI</p>
-      <Button
-        onClick={handleLogin}
-        className="fade-in flex items-center gap-3 bg-card border shadow-lg hover:bg-muted transition-all mt-8 px-8 py-6 rounded-full"
-      >
-        <img
-          src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
-          className="w-6 h-6"
-          alt="Google"
-        />
-        <span className="font-semibold text-base">Entrar com Google</span>
-      </Button>
+
+      <div className="mt-8 flex flex-col items-center gap-4 w-full max-w-sm px-4">
+        <div className="relative w-full">
+            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground h-5 w-5" />
+            <Input 
+                type="email"
+                placeholder="seunome@hslocadora.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
+                className="pl-10 h-12"
+            />
+        </div>
+        <Button
+          onClick={handleLogin}
+          className="w-full flex items-center gap-3 bg-primary text-primary-foreground shadow-lg hover:bg-primary/90 transition-all h-12 rounded-lg"
+        >
+          <span className="font-semibold text-base">Entrar com E-mail</span>
+        </Button>
+      </div>
     </div>
   );
 }
