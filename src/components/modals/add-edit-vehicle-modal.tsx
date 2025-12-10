@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import type { Vehicle, Group, CompanyId } from '@/lib/types';
 import { COMPANIES } from '@/lib/types';
+import { Textarea } from '../ui/textarea';
 
 const vehicleSchema = z.object({
   placa: z.string().min(7, 'Placa inválida').max(7, 'Placa inválida'),
@@ -20,6 +21,7 @@ const vehicleSchema = z.object({
   chassi: z.string().optional(),
   dataEntrada: z.string().optional(),
   valorCompra: z.coerce.number().positive('Valor deve ser positivo'),
+  observacao: z.string().optional(),
 });
 
 type VehicleFormData = z.infer<typeof vehicleSchema>;
@@ -54,6 +56,7 @@ export default function AddEditVehicleModal({
       chassi: '',
       dataEntrada: new Date().toISOString().split('T')[0],
       valorCompra: 0,
+      observacao: '',
     },
   });
   
@@ -76,6 +79,7 @@ export default function AddEditVehicleModal({
         chassi: vehicle.chassi,
         dataEntrada: vehicle.dataEntrada?.split('T')[0] || new Date().toISOString().split('T')[0],
         valorCompra: vehicle.valorCompra,
+        observacao: vehicle.observacao,
       });
     } else {
       form.reset({
@@ -87,6 +91,7 @@ export default function AddEditVehicleModal({
         chassi: '',
         dataEntrada: new Date().toISOString().split('T')[0],
         valorCompra: 0,
+        observacao: '',
       });
     }
   }, [vehicle, isOpen, form]);
@@ -175,6 +180,19 @@ export default function AddEditVehicleModal({
                     <FormLabel className="text-xs uppercase font-bold text-muted-foreground">Valor de Compra (R$)</FormLabel>
                     <FormControl>
                         <Input type="number" step="0.01" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                    </FormItem>
+                )}
+            />
+            <FormField
+                control={form.control}
+                name="observacao"
+                render={({ field }) => (
+                    <FormItem>
+                    <FormLabel className="text-xs uppercase font-bold text-muted-foreground">Observação</FormLabel>
+                    <FormControl>
+                        <Textarea {...field} placeholder="Adicione detalhes, avarias, ou informações importantes..." />
                     </FormControl>
                     <FormMessage />
                     </FormItem>

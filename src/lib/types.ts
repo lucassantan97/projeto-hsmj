@@ -1,3 +1,4 @@
+
 export type CompanyId = 'HS' | 'MJ';
 
 export interface User {
@@ -17,6 +18,7 @@ export interface Vehicle {
   renavam?: string;
   chassi?: string;
   dataEntrada?: string;
+  observacao?: string;
   vendaInfo?: Sale;
   maintenances?: Maintenance[];
   totalMaint?: number;

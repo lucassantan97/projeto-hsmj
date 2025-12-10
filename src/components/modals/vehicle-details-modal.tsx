@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import type { Vehicle, CompanyId, MaintenanceItem, Group, Sale } from '@/lib/types';
 import { COMPANIES } from '@/lib/types';
 import { formatCurrency, cn } from '@/lib/utils';
-import { Handshake, Pencil, Building, ArrowRightLeft, FileText, Undo2, Edit, CloudUpload, Wrench, Plus, Loader2, BrainCircuit } from 'lucide-react';
+import { Handshake, Pencil, Building, ArrowRightLeft, FileText, Undo2, Edit, CloudUpload, Wrench, Plus, Loader2, BrainCircuit, MessageSquareText } from 'lucide-react';
 import { extractMaintenanceDataAction, analyzeMaintenanceHistoryAction } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '../ui/scroll-area';
@@ -144,6 +144,14 @@ export default function VehicleDetailsModal({
       theme: 'striped',
       headStyles: { fillColor: [30, 58, 138] }, // Primary color
     });
+
+    if (vehicle.observacao) {
+      doc.setFontSize(12);
+      doc.text("Observações", 14, (doc as any).lastAutoTable.finalY + 15);
+      doc.setFontSize(10);
+      const splitText = doc.splitTextToSize(vehicle.observacao, 180);
+      doc.text(splitText, 14, (doc as any).lastAutoTable.finalY + 22);
+    }
   
     if (vehicle.maintenances && vehicle.maintenances.length > 0) {
       doc.addPage();
@@ -302,6 +310,12 @@ export default function VehicleDetailsModal({
                     <div className="font-medium"><p className="text-xs text-muted-foreground">Ano/Modelo</p><p>{vehicle.anoModelo}</p></div>
                     <div className="font-medium"><p className="text-xs text-muted-foreground">Chassi</p><p>{vehicle.chassi || 'N/A'}</p></div>
                     <div className="font-medium"><p className="text-xs text-muted-foreground">Renavam</p><p>{vehicle.renavam || 'N/A'}</p></div>
+                    {vehicle.observacao && (
+                      <div className="font-medium col-span-full">
+                        <p className="text-xs text-muted-foreground flex items-center gap-1"><MessageSquareText className="h-3 w-3"/>Observação</p>
+                        <p className="text-sm whitespace-pre-wrap">{vehicle.observacao}</p>
+                      </div>
+                    )}
                 </CardContent>
             </Card>
 
