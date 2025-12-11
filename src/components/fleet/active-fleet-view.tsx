@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useMemo } from 'react';
@@ -11,6 +12,8 @@ import AddEditVehicleModal from '../modals/add-edit-vehicle-modal';
 import ManageGroupsModal from '../modals/manage-groups-modal';
 import { useMaintenanceAlerts } from '@/hooks/use-maintenance-alerts';
 import MaintenanceAlerts from './maintenance-alerts';
+import { useLicensingAlerts } from '@/hooks/use-licensing-alerts';
+import LicensingAlerts from './licensing-alerts';
 
 interface ActiveFleetViewProps {
   vehicles: Vehicle[];
@@ -59,6 +62,7 @@ export default function ActiveFleetView({
   }, [search, vehicles]);
 
   const maintenanceAlerts = useMaintenanceAlerts(filteredVehicles);
+  const licensingAlerts = useLicensingAlerts(filteredVehicles);
 
   const vehicleGroups = useMemo(() => {
     const activeVehicles = filteredVehicles.filter(v => v.status === 'ativo');
@@ -113,8 +117,11 @@ export default function ActiveFleetView({
         </div>
       </div>
       
-      {!loading && maintenanceAlerts.length > 0 && (
-        <MaintenanceAlerts alerts={maintenanceAlerts} findVehicleById={findVehicleById} />
+      {!loading && (licensingAlerts.length > 0 || maintenanceAlerts.length > 0) && (
+        <div className="mb-6 space-y-3">
+          <LicensingAlerts alerts={licensingAlerts} findVehicleById={findVehicleById} />
+          <MaintenanceAlerts alerts={maintenanceAlerts} findVehicleById={findVehicleById} />
+        </div>
       )}
 
       {loading && (

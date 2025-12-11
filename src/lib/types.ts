@@ -23,6 +23,7 @@ export interface Vehicle {
   maintenances?: Maintenance[];
   totalMaint?: number;
   kmAtual?: number; // Current KM for alert calculation
+  licenciamento?: string; // Licensing due date
 }
 
 export interface Sale {
@@ -56,6 +57,13 @@ export interface MaintenanceAlert {
   vehicleId: string;
   type: 'km' | 'time';
   message: string;
+}
+
+export interface LicensingAlert {
+  vehicleId: string;
+  dueDate: string;
+  daysRemaining: number;
+  status: 'vencido' | 'alerta' | 'ok';
 }
 
 export const COMPANIES = {

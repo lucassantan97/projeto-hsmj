@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
@@ -8,8 +9,8 @@ import { Button } from '../ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import type { Vehicle, CompanyId, MaintenanceItem, Group, Sale } from '@/lib/types';
 import { COMPANIES } from '@/lib/types';
-import { formatCurrency, cn } from '@/lib/utils';
-import { Handshake, Pencil, Building, ArrowRightLeft, FileText, Undo2, Edit, CloudUpload, Wrench, Plus, Loader2, BrainCircuit, MessageSquareText } from 'lucide-react';
+import { formatCurrency, cn, getLicensingInfo } from '@/lib/utils';
+import { Handshake, Pencil, Building, ArrowRightLeft, FileText, Undo2, Edit, CloudUpload, Wrench, Plus, Loader2, BrainCircuit, MessageSquareText, FileBadge } from 'lucide-react';
 import { extractMaintenanceDataAction, analyzeMaintenanceHistoryAction } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '../ui/scroll-area';
@@ -17,6 +18,7 @@ import { Badge } from '../ui/badge';
 import AddEditVehicleModal from './add-edit-vehicle-modal';
 import SellVehicleModal from './sell-vehicle-modal';
 import TransferGroupModal from './transfer-group-modal';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 
 interface VehicleDetailsModalProps {
   isOpen: boolean;
@@ -114,6 +116,13 @@ export default function VehicleDetailsModal({
   const handleSold = (saleInfo: Sale) => {
     if (!vehicle) return;
     onUpdateVehicle({ ...vehicle, status: 'vendido', vendaInfo: saleInfo });
+  };
+  
+  const handleMarkAsLicensed = () => {
+    if (!vehicle) return;
+    const newDueDate = getLicensingInfo(vehicle.placa, new Date().getFullYear() + 1).dueDate.toISOString().split('T')[0];
+    onUpdateVehicle({ ...vehicle, licenciamento: newDueDate });
+    toast({ title: "Licenciamento Atualizado", description: `Veículo ${vehicle.placa} regularizado até ${new Date(newDueDate).toLocaleDateString('pt-BR')}.` });
   };
 
   const generatePDF = () => {
@@ -279,6 +288,16 @@ export default function VehicleDetailsModal({
   const isSold = vehicle.status === 'vendido';
   const companyTheme = COMPANIES[companyId].theme.primary;
 
+  const licensingInfo = getLicensingInfo(vehicle.placa);
+  const getStatusColor = () => {
+    switch (licensingInfo.status) {
+        case 'vencido': return 'text-red-500';
+        case 'alerta': return 'text-yellow-500';
+        default: return 'text-green-500';
+    }
+  };
+
+
   return (
     <>
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -288,113 +307,167 @@ export default function VehicleDetailsModal({
           <DialogDescription>{vehicle.placa} - {vehicle.modelo}</DialogDescription>
         </DialogHeader>
 
-        <div className="p-6 overflow-y-auto">
-            <div className="flex flex-wrap justify-end mb-6 gap-2">
-                {!isSold && <Button variant="outline" size="sm" onClick={handleMoveCompany}><Building className="h-4 w-4 mr-2"/>Mover para {otherCompany}</Button>}
-                {!isSold && <Button variant="outline" size="sm" onClick={() => setTransferGroupModalOpen(true)}><ArrowRightLeft className="h-4 w-4 mr-2"/>Transferir Grupo</Button>}
-                {!isSold && <Button variant="outline" size="sm" className="border-orange-500 text-orange-600 hover:bg-orange-50 hover:text-orange-700" onClick={handleSellClick}><Handshake className="h-4 w-4 mr-2"/>Vender</Button>}
-                {!isSold && <Button variant="outline" size="sm" onClick={handleEditClick}><Pencil className="h-4 w-4 mr-2"/>Editar</Button>}
-                
-                {isSold && <Button variant="outline" size="sm" className="border-red-500 text-red-600 hover:bg-red-50 hover:text-red-700" onClick={handleCancelSale}><Undo2 className="h-4 w-4 mr-2"/>Cancelar Venda</Button>}
-                {isSold && <Button variant="outline" size="sm" className="border-yellow-500 text-yellow-600 hover:bg-yellow-50 hover:text-yellow-700" onClick={handleEditClick}><Edit className="h-4 w-4 mr-2"/>Editar Venda</Button>}
-                
-                <Button variant="outline" size="sm" onClick={generatePDF}><FileText className="h-4 w-4 mr-2 text-red-500"/>PDF</Button>
+        <div className="flex-grow overflow-y-auto">
+          <Tabs defaultValue="details" className="p-6">
+            <div className="flex justify-between items-start">
+                <TabsList>
+                  <TabsTrigger value="details">Detalhes</TabsTrigger>
+                  <TabsTrigger value="maintenance">Manutenção</TabsTrigger>
+                  <TabsTrigger value="licensing">Licenciamento</TabsTrigger>
+                </TabsList>
+                 <div className="flex flex-wrap justify-end mb-6 gap-2">
+                    {!isSold && <Button variant="outline" size="sm" onClick={handleMoveCompany}><Building className="h-4 w-4 mr-2"/>Mover para {otherCompany}</Button>}
+                    {!isSold && <Button variant="outline" size="sm" onClick={() => setTransferGroupModalOpen(true)}><ArrowRightLeft className="h-4 w-4 mr-2"/>Transferir Grupo</Button>}
+                    {!isSold && <Button variant="outline" size="sm" className="border-orange-500 text-orange-600 hover:bg-orange-50 hover:text-orange-700" onClick={handleSellClick}><Handshake className="h-4 w-4 mr-2"/>Vender</Button>}
+                    {!isSold && <Button variant="outline" size="sm" onClick={handleEditClick}><Pencil className="h-4 w-4 mr-2"/>Editar</Button>}
+                    
+                    {isSold && <Button variant="outline" size="sm" className="border-red-500 text-red-600 hover:bg-red-50 hover:text-red-700" onClick={handleCancelSale}><Undo2 className="h-4 w-4 mr-2"/>Cancelar Venda</Button>}
+                    {isSold && <Button variant="outline" size="sm" className="border-yellow-500 text-yellow-600 hover:bg-yellow-50 hover:text-yellow-700" onClick={handleEditClick}><Edit className="h-4 w-4 mr-2"/>Editar Venda</Button>}
+                    
+                    <Button variant="outline" size="sm" onClick={generatePDF}><FileText className="h-4 w-4 mr-2 text-red-500"/>PDF</Button>
+                </div>
             </div>
+           
+            <TabsContent value="details">
+              <Card className="bg-muted/30 mb-8">
+                  <CardContent className="p-6 grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-6">
+                      <div className="font-medium"><p className="text-xs text-muted-foreground">Placa</p><p>{vehicle.placa}</p></div>
+                      <div className="font-medium"><p className="text-xs text-muted-foreground">Modelo</p><p>{vehicle.modelo}</p></div>
+                      <div className="font-medium"><p className="text-xs text-muted-foreground">Grupo</p><p>{vehicle.cliente}</p></div>
+                      <div className="font-medium"><p className="text-xs text-muted-foreground">Valor de Compra</p><p>{formatCurrency(vehicle.valorCompra)}</p></div>
+                      <div className="font-medium"><p className="text-xs text-muted-foreground">Data da Compra</p><p>{vehicle.dataEntrada ? new Date(vehicle.dataEntrada).toLocaleDateString('pt-BR', {timeZone: 'UTC'}) : 'N/A'}</p></div>
+                      <div className="font-medium"><p className="text-xs text-muted-foreground">Ano/Modelo</p><p>{vehicle.anoModelo}</p></div>
+                      <div className="font-medium"><p className="text-xs text-muted-foreground">KM Atual</p><p>{vehicle.kmAtual?.toLocaleString('pt-BR') || 'N/A'}</p></div>
+                      <div className="font-medium"><p className="text-xs text-muted-foreground">Renavam</p><p>{vehicle.renavam || 'N/A'}</p></div>
+                      {vehicle.chassi && (
+                          <div className="font-medium col-span-2"><p className="text-xs text-muted-foreground">Chassi</p><p>{vehicle.chassi}</p></div>
+                      )}
+                      {vehicle.observacao && (
+                        <div className="font-medium col-span-full">
+                          <p className="text-xs text-muted-foreground flex items-center gap-1"><MessageSquareText className="h-3 w-3"/>Observação</p>
+                          <p className="text-sm whitespace-pre-wrap">{vehicle.observacao}</p>
+                        </div>
+                      )}
+                  </CardContent>
+              </Card>
+               <h3 className="text-lg font-bold font-headline mb-4">Histórico Completo</h3>
+                <ScrollArea className="h-64 border rounded-lg">
+                    <div className="space-y-3 p-4">
+                    {(vehicle.maintenances && vehicle.maintenances.length > 0) ? vehicle.maintenances.sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime()).map(m => (
+                        <div key={m.id} className="text-sm bg-muted/30 p-3 rounded-lg">
+                            <div className="flex justify-between font-bold mb-1">
+                                <span>{new Date(m.data).toLocaleDateString('pt-BR', {timeZone: 'UTC'})} - {m.fornecedor}</span>
+                                <Badge variant={m.total > 500 ? 'destructive' : 'secondary'}>{formatCurrency(m.total)}</Badge>
+                            </div>
+                            <p className="text-xs text-muted-foreground">KM: {m.km.toLocaleString('pt-BR')}</p>
+                            <ul className="list-disc ml-4 text-xs text-muted-foreground">
+                                {m.items.map((item, i) => <li key={i}>{item.descricao} ({formatCurrency(item.valor)})</li>)}
+                            </ul>
+                        </div>
+                    )) : <p className="text-center text-muted-foreground text-sm py-8">Sem histórico de manutenção.</p>}
+                    </div>
+                </ScrollArea>
+            </TabsContent>
+            <TabsContent value="maintenance">
+               {!isSold && (
+                <div className="flex flex-col lg:flex-row gap-6">
+                    <div className="lg:w-1/3">
+                        <label htmlFor="fileInput" className={cn("border-2 border-dashed rounded-xl flex flex-col items-center justify-center cursor-pointer relative bg-muted/20 min-h-[200px] p-4 transition-colors hover:border-primary hover:bg-primary/5", isAiLoading && "cursor-wait")}>
+                            <input type="file" id="fileInput" className="absolute inset-0 opacity-0 cursor-pointer" accept="image/*,application/pdf" onChange={(e) => e.target.files && handleFileUpload(e.target.files[0])} disabled={isAiLoading}/>
+                            <CloudUpload className="h-10 w-10 text-muted-foreground mb-2"/>
+                            <p className="font-bold text-foreground text-center text-sm">Arrastar Nota/Foto</p>
+                            <p className="text-xs text-muted-foreground mt-1">IA preenche automático</p>
+                            {isAiLoading && (
+                                <div className="absolute inset-0 bg-background/80 flex flex-col items-center justify-center">
+                                    <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
+                                    <span className="text-xs font-bold text-primary">Lendo...</span>
+                                </div>
+                            )}
+                        </label>
+                    </div>
 
-            <Card className="bg-muted/30 mb-8">
-                <CardContent className="p-6 grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-6">
-                    <div className="font-medium"><p className="text-xs text-muted-foreground">Placa</p><p>{vehicle.placa}</p></div>
-                    <div className="font-medium"><p className="text-xs text-muted-foreground">Modelo</p><p>{vehicle.modelo}</p></div>
-                    <div className="font-medium"><p className="text-xs text-muted-foreground">Grupo</p><p>{vehicle.cliente}</p></div>
-                    <div className="font-medium"><p className="text-xs text-muted-foreground">Valor de Compra</p><p>{formatCurrency(vehicle.valorCompra)}</p></div>
-                    <div className="font-medium"><p className="text-xs text-muted-foreground">Data da Compra</p><p>{vehicle.dataEntrada ? new Date(vehicle.dataEntrada).toLocaleDateString('pt-BR', {timeZone: 'UTC'}) : 'N/A'}</p></div>
-                    <div className="font-medium"><p className="text-xs text-muted-foreground">Ano/Modelo</p><p>{vehicle.anoModelo}</p></div>
-                    <div className="font-medium"><p className="text-xs text-muted-foreground">KM Atual</p><p>{vehicle.kmAtual?.toLocaleString('pt-BR') || 'N/A'}</p></div>
-                    <div className="font-medium"><p className="text-xs text-muted-foreground">Renavam</p><p>{vehicle.renavam || 'N/A'}</p></div>
-                    {vehicle.chassi && (
-                        <div className="font-medium col-span-2"><p className="text-xs text-muted-foreground">Chassi</p><p>{vehicle.chassi}</p></div>
-                    )}
-                    {vehicle.observacao && (
-                      <div className="font-medium col-span-full">
-                        <p className="text-xs text-muted-foreground flex items-center gap-1"><MessageSquareText className="h-3 w-3"/>Observação</p>
-                        <p className="text-sm whitespace-pre-wrap">{vehicle.observacao}</p>
-                      </div>
-                    )}
-                </CardContent>
-            </Card>
+                    <Card className="overflow-hidden lg:w-2/3">
+                        <CardHeader className="bg-muted/50 flex flex-row justify-between items-center p-4">
+                            <CardTitle className="text-base font-bold flex items-center gap-2 font-headline"><Wrench className={`h-5 w-5 text-${companyTheme}`} />Nova Manutenção</CardTitle>
+                            <Button size="sm" variant="outline" className="sparkle-btn text-xs" onClick={handleAiAnalysis} disabled={isAiAnalysisLoading}>
+                                {isAiAnalysisLoading ? <Loader2 className="h-4 w-4 animate-spin"/> : <><BrainCircuit className="h-4 w-4 mr-2"/> Análise IA</>}
+                            </Button>
+                        </CardHeader>
 
-            {!isSold && (
-            <div className="flex flex-col lg:flex-row gap-6 mb-8">
-                <div className="lg:w-1/3">
-                    <label htmlFor="fileInput" className={cn("border-2 border-dashed rounded-xl flex flex-col items-center justify-center cursor-pointer relative bg-muted/20 min-h-[200px] p-4 transition-colors hover:border-primary hover:bg-primary/5", isAiLoading && "cursor-wait")}>
-                        <input type="file" id="fileInput" className="absolute inset-0 opacity-0 cursor-pointer" accept="image/*,application/pdf" onChange={(e) => e.target.files && handleFileUpload(e.target.files[0])} disabled={isAiLoading}/>
-                        <CloudUpload className="h-10 w-10 text-muted-foreground mb-2"/>
-                        <p className="font-bold text-foreground text-center text-sm">Arrastar Nota/Foto</p>
-                        <p className="text-xs text-muted-foreground mt-1">IA preenche automático</p>
-                        {isAiLoading && (
-                            <div className="absolute inset-0 bg-background/80 flex flex-col items-center justify-center">
-                                <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
-                                <span className="text-xs font-bold text-primary">Lendo...</span>
+                        {aiAnalysisResult && (
+                            <div className="bg-purple-50 dark:bg-purple-900/20 p-4 border-b text-sm prose-sm dark:prose-invert prose-p:my-1 prose-ul:my-1" dangerouslySetInnerHTML={{ __html: aiAnalysisResult }}></div>
+                        )}
+                        
+                        <CardContent className="p-6 space-y-4">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                               <div><label className="text-xs font-bold text-muted-foreground uppercase">Data</label><input className="w-full p-2 border rounded-lg bg-background" type="date" value={maintDate} onChange={e => setMaintDate(e.target.value)} required /></div>
+                               <div><label className="text-xs font-bold text-muted-foreground uppercase">KM Atual</label><input className="w-full p-2 border rounded-lg bg-background" type="number" value={maintKm} onChange={e => setMaintKm(e.target.value)} required /></div>
+                               <div><label className="text-xs font-bold text-muted-foreground uppercase">Fornecedor</label><input className="w-full p-2 border rounded-lg bg-background" type="text" value={maintFornecedor} onChange={e => setMaintFornecedor(e.target.value)} required /></div>
+                            </div>
+
+                            <div className="bg-muted/30 p-4 rounded-xl border border-dashed">
+                                <div className="flex flex-wrap items-end gap-3">
+                                    <div className="flex-grow"><label className="text-xs font-bold text-muted-foreground uppercase">Descrição do Item</label><input className="w-full p-2 border rounded-lg bg-background" type="text" value={newItemDesc} onChange={e => setNewItemDesc(e.target.value)} placeholder="Ex: Filtro de Óleo" /></div>
+                                    <div className="w-32"><label className="text-xs font-bold text-muted-foreground uppercase">Valor (R$)</label><input className="w-full p-2 border rounded-lg bg-background" type="number" step="0.01" value={newItemValue} onChange={e => setNewItemValue(e.target.value)} placeholder="0.00"/></div>
+                                    <Button size="icon" onClick={handleAddItem}><Plus className="h-4 w-4" /></Button>
+                                </div>
+                                <div className="mt-3 space-y-2 text-sm">
+                                    {newMaintItems.map((item, i) => <div key={i} className="flex justify-between items-center"><p>{item.descricao}</p><p>{formatCurrency(item.valor)}</p></div>)}
+                                </div>
+                            </div>
+                            <div className="mt-6 flex justify-between items-center border-t pt-4">
+                                 <div><span className="text-xs font-bold text-muted-foreground uppercase">Total</span><p className={`font-bold text-2xl text-${companyTheme}`}>{formatCurrency(newMaintenanceTotal)}</p></div>
+                                 <Button onClick={handleSaveMaintenance} className="bg-green-600 hover:bg-green-700" disabled={newMaintItems.length === 0}>Lançar Histórico</Button>
+                             </div>
+                        </CardContent>
+                    </Card>
+                </div>
+                )}
+                 {isSold && (
+                    <div className="text-center py-10 text-muted-foreground">
+                        <p>O veículo foi vendido. Não é possível adicionar novas manutenções.</p>
+                    </div>
+                )}
+            </TabsContent>
+             <TabsContent value="licensing">
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2 font-headline"><FileBadge /> Status do Licenciamento</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className={cn("p-4 rounded-lg flex items-center justify-between", {
+                            'bg-green-100 dark:bg-green-900/30': licensingInfo.status === 'ok',
+                            'bg-yellow-100 dark:bg-yellow-900/30': licensingInfo.status === 'alerta',
+                            'bg-red-100 dark:bg-red-900/30': licensingInfo.status === 'vencido',
+                        })}>
+                            <div>
+                                <p className={cn("font-bold text-lg", getStatusColor())}>
+                                    {licensingInfo.status.toUpperCase()}
+                                </p>
+                                <p className="text-sm text-muted-foreground">
+                                    Vencimento: {licensingInfo.dueDate.toLocaleDateString('pt-BR')}
+                                </p>
+                            </div>
+                            <div className="text-right">
+                                <p className="text-2xl font-bold">{licensingInfo.daysRemaining > 0 ? licensingInfo.daysRemaining : '-'}</p>
+                                <p className="text-xs text-muted-foreground">{licensingInfo.daysRemaining > 0 ? 'dias restantes' : 'dias vencidos'}</p>
+                            </div>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                            O cálculo do vencimento é baseado no final da placa para pessoa jurídica. 
+                            A data de vencimento atualizada é {vehicle.licenciamento ? new Date(vehicle.licenciamento).toLocaleDateString('pt-BR') : licensingInfo.dueDate.toLocaleDateString('pt-BR')}.
+                        </p>
+                        {!isSold && (
+                            <div className="flex gap-4 pt-4 border-t">
+                                <Button onClick={handleMarkAsLicensed} className="w-full">
+                                    <Check className="mr-2 h-4 w-4" /> Marcar como Regularizado para {new Date().getFullYear() + 1}
+                                </Button>
                             </div>
                         )}
-                    </label>
-                </div>
-
-                <Card className="overflow-hidden lg:w-2/3">
-                    <CardHeader className="bg-muted/50 flex flex-row justify-between items-center p-4">
-                        <CardTitle className="text-base font-bold flex items-center gap-2 font-headline"><Wrench className={`h-5 w-5 text-${companyTheme}`} />Nova Manutenção</CardTitle>
-                        <Button size="sm" variant="outline" className="sparkle-btn text-xs" onClick={handleAiAnalysis} disabled={isAiAnalysisLoading}>
-                            {isAiAnalysisLoading ? <Loader2 className="h-4 w-4 animate-spin"/> : <><BrainCircuit className="h-4 w-4 mr-2"/> Análise IA</>}
-                        </Button>
-                    </CardHeader>
-
-                    {aiAnalysisResult && (
-                        <div className="bg-purple-50 dark:bg-purple-900/20 p-4 border-b text-sm prose-sm dark:prose-invert prose-p:my-1 prose-ul:my-1" dangerouslySetInnerHTML={{ __html: aiAnalysisResult }}></div>
-                    )}
-                    
-                    <CardContent className="p-6 space-y-4">
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                           <div><label className="text-xs font-bold text-muted-foreground uppercase">Data</label><input className="w-full p-2 border rounded-lg bg-background" type="date" value={maintDate} onChange={e => setMaintDate(e.target.value)} required /></div>
-                           <div><label className="text-xs font-bold text-muted-foreground uppercase">KM Atual</label><input className="w-full p-2 border rounded-lg bg-background" type="number" value={maintKm} onChange={e => setMaintKm(e.target.value)} required /></div>
-                           <div><label className="text-xs font-bold text-muted-foreground uppercase">Fornecedor</label><input className="w-full p-2 border rounded-lg bg-background" type="text" value={maintFornecedor} onChange={e => setMaintFornecedor(e.target.value)} required /></div>
-                        </div>
-
-                        <div className="bg-muted/30 p-4 rounded-xl border border-dashed">
-                            <div className="flex flex-wrap items-end gap-3">
-                                <div className="flex-grow"><label className="text-xs font-bold text-muted-foreground uppercase">Descrição do Item</label><input className="w-full p-2 border rounded-lg bg-background" type="text" value={newItemDesc} onChange={e => setNewItemDesc(e.target.value)} placeholder="Ex: Filtro de Óleo" /></div>
-                                <div className="w-32"><label className="text-xs font-bold text-muted-foreground uppercase">Valor (R$)</label><input className="w-full p-2 border rounded-lg bg-background" type="number" step="0.01" value={newItemValue} onChange={e => setNewItemValue(e.target.value)} placeholder="0.00"/></div>
-                                <Button size="icon" onClick={handleAddItem}><Plus className="h-4 w-4" /></Button>
-                            </div>
-                            <div className="mt-3 space-y-2 text-sm">
-                                {newMaintItems.map((item, i) => <div key={i} className="flex justify-between items-center"><p>{item.descricao}</p><p>{formatCurrency(item.valor)}</p></div>)}
-                            </div>
-                        </div>
-                        <div className="mt-6 flex justify-between items-center border-t pt-4">
-                             <div><span className="text-xs font-bold text-muted-foreground uppercase">Total</span><p className={`font-bold text-2xl text-${companyTheme}`}>{formatCurrency(newMaintenanceTotal)}</p></div>
-                             <Button onClick={handleSaveMaintenance} className="bg-green-600 hover:bg-green-700" disabled={newMaintItems.length === 0}>Lançar Histórico</Button>
-                         </div>
                     </CardContent>
                 </Card>
-            </div>
-            )}
-
-            <h3 className="text-lg font-bold font-headline mb-4">Histórico Completo</h3>
-            <ScrollArea className="h-64 border rounded-lg">
-                <div className="space-y-3 p-4">
-                {(vehicle.maintenances && vehicle.maintenances.length > 0) ? vehicle.maintenances.sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime()).map(m => (
-                    <div key={m.id} className="text-sm bg-muted/30 p-3 rounded-lg">
-                        <div className="flex justify-between font-bold mb-1">
-                            <span>{new Date(m.data).toLocaleDateString('pt-BR', {timeZone: 'UTC'})} - {m.fornecedor}</span>
-                            <Badge variant={m.total > 500 ? 'destructive' : 'secondary'}>{formatCurrency(m.total)}</Badge>
-                        </div>
-                        <p className="text-xs text-muted-foreground">KM: {m.km.toLocaleString('pt-BR')}</p>
-                        <ul className="list-disc ml-4 text-xs text-muted-foreground">
-                            {m.items.map((item, i) => <li key={i}>{item.descricao} ({formatCurrency(item.valor)})</li>)}
-                        </ul>
-                    </div>
-                )) : <p className="text-center text-muted-foreground text-sm py-8">Sem histórico de manutenção.</p>}
-                </div>
-            </ScrollArea>
+            </TabsContent>
+          </Tabs>
         </div>
       </DialogContent>
     </Dialog>
