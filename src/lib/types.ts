@@ -22,6 +22,7 @@ export interface Vehicle {
   vendaInfo?: Sale;
   maintenances?: Maintenance[];
   totalMaint?: number;
+  kmAtual?: number; // Current KM for alert calculation
 }
 
 export interface Sale {
@@ -49,6 +50,12 @@ export interface Group {
     id: string;
     name: string;
     company: CompanyId;
+}
+
+export interface MaintenanceAlert {
+  vehicleId: string;
+  type: 'km' | 'time';
+  message: string;
 }
 
 export const COMPANIES = {

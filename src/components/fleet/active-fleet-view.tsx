@@ -6,9 +6,11 @@ import { Input } from '../ui/input';
 import { Car, Layers, Search, Warehouse } from 'lucide-react';
 import { Skeleton } from '../ui/skeleton';
 import VehicleGroup from './vehicle-group';
-import type { Vehicle, Group, CompanyId } from '@/lib/types';
+import type { Vehicle, Group, CompanyId, MaintenanceAlert } from '@/lib/types';
 import AddEditVehicleModal from '../modals/add-edit-vehicle-modal';
 import ManageGroupsModal from '../modals/manage-groups-modal';
+import { useMaintenanceAlerts } from '@/hooks/use-maintenance-alerts';
+import MaintenanceAlerts from './maintenance-alerts';
 
 interface ActiveFleetViewProps {
   vehicles: Vehicle[];
@@ -56,6 +58,8 @@ export default function ActiveFleetView({
     );
   }, [search, vehicles]);
 
+  const maintenanceAlerts = useMaintenanceAlerts(filteredVehicles);
+
   const vehicleGroups = useMemo(() => {
     const activeVehicles = filteredVehicles.filter(v => v.status === 'ativo');
     const groupNamesFromVehicles = [...new Set(activeVehicles.map((v) => v.cliente))];
@@ -76,6 +80,8 @@ export default function ActiveFleetView({
       onUpdateVehicle({...vehicle, cliente: newGroupName});
     }
   }
+
+  const findVehicleById = (id: string) => allVehicles.find(v => v.id === id);
 
   return (
     <section>
@@ -107,6 +113,10 @@ export default function ActiveFleetView({
         </div>
       </div>
       
+      {!loading && maintenanceAlerts.length > 0 && (
+        <MaintenanceAlerts alerts={maintenanceAlerts} findVehicleById={findVehicleById} />
+      )}
+
       {loading && (
         <div className="space-y-4">
           {[...Array(3)].map((_, i) => (

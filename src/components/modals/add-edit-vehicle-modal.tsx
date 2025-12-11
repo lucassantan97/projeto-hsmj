@@ -22,6 +22,7 @@ const vehicleSchema = z.object({
   dataEntrada: z.string().optional(),
   valorCompra: z.coerce.number().positive('Valor deve ser positivo'),
   observacao: z.string().optional(),
+  kmAtual: z.coerce.number().optional(),
 });
 
 type VehicleFormData = z.infer<typeof vehicleSchema>;
@@ -57,6 +58,7 @@ export default function AddEditVehicleModal({
       dataEntrada: new Date().toISOString().split('T')[0],
       valorCompra: 0,
       observacao: '',
+      kmAtual: 0,
     },
   });
   
@@ -80,6 +82,7 @@ export default function AddEditVehicleModal({
         dataEntrada: vehicle.dataEntrada?.split('T')[0] || new Date().toISOString().split('T')[0],
         valorCompra: vehicle.valorCompra,
         observacao: vehicle.observacao,
+        kmAtual: vehicle.kmAtual,
       });
     } else {
       form.reset({
@@ -92,6 +95,7 @@ export default function AddEditVehicleModal({
         dataEntrada: new Date().toISOString().split('T')[0],
         valorCompra: 0,
         observacao: '',
+        kmAtual: 0,
       });
     }
   }, [vehicle, isOpen, form]);
@@ -172,19 +176,35 @@ export default function AddEditVehicleModal({
                  <FormField control={form.control} name="anoModelo" render={({ field }) => ( <FormItem><FormLabel className="text-xs uppercase font-bold text-muted-foreground">Ano/Modelo</FormLabel><FormControl><Input {...field} /></FormControl></FormItem> )} />
                 <FormField control={form.control} name="dataEntrada" render={({ field }) => ( <FormItem><FormLabel className="text-xs uppercase font-bold text-muted-foreground">Data Compra</FormLabel><FormControl><Input type="date" {...field} /></FormControl></FormItem> )} />
             </div>
-             <FormField
-                control={form.control}
-                name="valorCompra"
-                render={({ field }) => (
-                    <FormItem>
-                    <FormLabel className="text-xs uppercase font-bold text-muted-foreground">Valor de Compra (R$)</FormLabel>
-                    <FormControl>
-                        <Input type="number" step="0.01" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                    </FormItem>
-                )}
-            />
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <FormField
+                    control={form.control}
+                    name="valorCompra"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel className="text-xs uppercase font-bold text-muted-foreground">Valor de Compra (R$)</FormLabel>
+                        <FormControl>
+                            <Input type="number" step="0.01" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                />
+                 <FormField
+                    control={form.control}
+                    name="kmAtual"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel className="text-xs uppercase font-bold text-muted-foreground">KM Atual</FormLabel>
+                        <FormControl>
+                            <Input type="number" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                />
+            </div>
             <FormField
                 control={form.control}
                 name="observacao"

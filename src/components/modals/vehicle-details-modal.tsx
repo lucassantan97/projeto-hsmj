@@ -63,14 +63,14 @@ export default function VehicleDetailsModal({
     setNewItemDesc('');
     setNewItemValue('');
     setMaintDate(new Date().toISOString().split('T')[0]);
-    setMaintKm('');
+    setMaintKm(vehicle?.kmAtual?.toString() ?? '');
     setMaintFornecedor('');
     setAiAnalysisResult(null);
   }
 
   useEffect(() => {
     if(isOpen) resetForm();
-  }, [isOpen]);
+  }, [isOpen, vehicle]);
 
   const handleMoveCompany = () => {
     if (!vehicle) return;
@@ -241,6 +241,7 @@ export default function VehicleDetailsModal({
     };
     const updatedVehicle = {
         ...vehicle,
+        kmAtual: parseInt(maintKm, 10), // Update current KM as well
         maintenances: [...(vehicle.maintenances || []), newMaintenance],
     };
     onUpdateVehicle(updatedVehicle);
@@ -308,8 +309,11 @@ export default function VehicleDetailsModal({
                     <div className="font-medium"><p className="text-xs text-muted-foreground">Valor de Compra</p><p>{formatCurrency(vehicle.valorCompra)}</p></div>
                     <div className="font-medium"><p className="text-xs text-muted-foreground">Data da Compra</p><p>{vehicle.dataEntrada ? new Date(vehicle.dataEntrada).toLocaleDateString('pt-BR', {timeZone: 'UTC'}) : 'N/A'}</p></div>
                     <div className="font-medium"><p className="text-xs text-muted-foreground">Ano/Modelo</p><p>{vehicle.anoModelo}</p></div>
-                    <div className="font-medium"><p className="text-xs text-muted-foreground">Chassi</p><p>{vehicle.chassi || 'N/A'}</p></div>
+                    <div className="font-medium"><p className="text-xs text-muted-foreground">KM Atual</p><p>{vehicle.kmAtual?.toLocaleString('pt-BR') || 'N/A'}</p></div>
                     <div className="font-medium"><p className="text-xs text-muted-foreground">Renavam</p><p>{vehicle.renavam || 'N/A'}</p></div>
+                    {vehicle.chassi && (
+                        <div className="font-medium col-span-2"><p className="text-xs text-muted-foreground">Chassi</p><p>{vehicle.chassi}</p></div>
+                    )}
                     {vehicle.observacao && (
                       <div className="font-medium col-span-full">
                         <p className="text-xs text-muted-foreground flex items-center gap-1"><MessageSquareText className="h-3 w-3"/>Observação</p>
@@ -383,6 +387,7 @@ export default function VehicleDetailsModal({
                             <span>{new Date(m.data).toLocaleDateString('pt-BR', {timeZone: 'UTC'})} - {m.fornecedor}</span>
                             <Badge variant={m.total > 500 ? 'destructive' : 'secondary'}>{formatCurrency(m.total)}</Badge>
                         </div>
+                        <p className="text-xs text-muted-foreground">KM: {m.km.toLocaleString('pt-BR')}</p>
                         <ul className="list-disc ml-4 text-xs text-muted-foreground">
                             {m.items.map((item, i) => <li key={i}>{item.descricao} ({formatCurrency(item.valor)})</li>)}
                         </ul>
