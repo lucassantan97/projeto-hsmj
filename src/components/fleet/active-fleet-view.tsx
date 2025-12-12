@@ -7,13 +7,12 @@ import { Input } from '../ui/input';
 import { Car, Layers, Search, Warehouse } from 'lucide-react';
 import { Skeleton } from '../ui/skeleton';
 import VehicleGroup from './vehicle-group';
-import type { Vehicle, Group, CompanyId, MaintenanceAlert } from '@/lib/types';
+import type { Vehicle, Group, CompanyId } from '@/lib/types';
 import AddEditVehicleModal from '../modals/add-edit-vehicle-modal';
 import ManageGroupsModal from '../modals/manage-groups-modal';
 import { useMaintenanceAlerts } from '@/hooks/use-maintenance-alerts';
-import MaintenanceAlerts from './maintenance-alerts';
 import { useLicensingAlerts } from '@/hooks/use-licensing-alerts';
-import LicensingAlerts from './licensing-alerts';
+import AlertGroup from './alert-group';
 
 interface ActiveFleetViewProps {
   vehicles: Vehicle[];
@@ -87,6 +86,15 @@ export default function ActiveFleetView({
 
   const findVehicleById = (id: string) => allVehicles.find(v => v.id === id);
 
+  const maintenanceAlertVehicles = useMemo(() => 
+    maintenanceAlerts.map(alert => findVehicleById(alert.vehicleId)).filter(Boolean) as Vehicle[]
+  , [maintenanceAlerts, allVehicles]);
+
+  const licensingAlertVehicles = useMemo(() => 
+    licensingAlerts.map(alert => findVehicleById(alert.vehicleId)).filter(Boolean) as Vehicle[]
+  , [licensingAlerts, allVehicles]);
+
+
   return (
     <section>
       <div className="flex flex-col md:flex-row justify-between mb-6 gap-4">
@@ -117,12 +125,31 @@ export default function ActiveFleetView({
         </div>
       </div>
       
-      {!loading && (licensingAlerts.length > 0 || maintenanceAlerts.length > 0) && (
-        <div className="mb-6 space-y-3">
-          <LicensingAlerts alerts={licensingAlerts} findVehicleById={findVehicleById} />
-          <MaintenanceAlerts alerts={maintenanceAlerts} findVehicleById={findVehicleById} />
+      {!loading && (
+        <div className="space-y-4 mb-4">
+            <AlertGroup
+                type="licensing"
+                vehicles={licensingAlertVehicles}
+                allVehicles={allVehicles}
+                groups={groups}
+                companyId={companyId}
+                onUpdateVehicle={onUpdateVehicle}
+                onAddVehicle={onAddVehicle}
+                onAddGroup={onAddGroup}
+            />
+            <AlertGroup
+                type="maintenance"
+                vehicles={maintenanceAlertVehicles}
+                allVehicles={allVehicles}
+                groups={groups}
+                companyId={companyId}
+                onUpdateVehicle={onUpdateVehicle}
+                onAddVehicle={onAddVehicle}
+                onAddGroup={onAddGroup}
+            />
         </div>
       )}
+
 
       {loading && (
         <div className="space-y-4">

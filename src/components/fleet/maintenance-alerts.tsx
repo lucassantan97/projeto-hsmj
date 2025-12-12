@@ -2,7 +2,7 @@
 'use client';
 import React from 'react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle, Wrench } from 'lucide-react';
+import { Wrench } from 'lucide-react';
 import type { MaintenanceAlert, Vehicle } from '@/lib/types';
 
 interface MaintenanceAlertsProps {
