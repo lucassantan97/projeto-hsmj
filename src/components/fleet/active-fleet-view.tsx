@@ -12,7 +12,8 @@ import AddEditVehicleModal from '../modals/add-edit-vehicle-modal';
 import ManageGroupsModal from '../modals/manage-groups-modal';
 import { useMaintenanceAlerts } from '@/hooks/use-maintenance-alerts';
 import { useLicensingAlerts } from '@/hooks/use-licensing-alerts';
-import AlertGroup from './alert-group';
+import MaintenanceAlerts from './maintenance-alerts';
+import LicensingAlerts from './licensing-alerts';
 
 interface ActiveFleetViewProps {
   vehicles: Vehicle[];
@@ -86,15 +87,6 @@ export default function ActiveFleetView({
 
   const findVehicleById = (id: string) => allVehicles.find(v => v.id === id);
 
-  const maintenanceAlertVehicles = useMemo(() => 
-    maintenanceAlerts.map(alert => findVehicleById(alert.vehicleId)).filter(Boolean) as Vehicle[]
-  , [maintenanceAlerts, allVehicles]);
-
-  const licensingAlertVehicles = useMemo(() => 
-    licensingAlerts.map(alert => findVehicleById(alert.vehicleId)).filter(Boolean) as Vehicle[]
-  , [licensingAlerts, allVehicles]);
-
-
   return (
     <section>
       <div className="flex flex-col md:flex-row justify-between mb-6 gap-4">
@@ -126,27 +118,9 @@ export default function ActiveFleetView({
       </div>
       
       {!loading && (
-        <div className="space-y-4 mb-4">
-            <AlertGroup
-                type="licensing"
-                vehicles={licensingAlertVehicles}
-                allVehicles={allVehicles}
-                groups={groups}
-                companyId={companyId}
-                onUpdateVehicle={onUpdateVehicle}
-                onAddVehicle={onAddVehicle}
-                onAddGroup={onAddGroup}
-            />
-            <AlertGroup
-                type="maintenance"
-                vehicles={maintenanceAlertVehicles}
-                allVehicles={allVehicles}
-                groups={groups}
-                companyId={companyId}
-                onUpdateVehicle={onUpdateVehicle}
-                onAddVehicle={onAddVehicle}
-                onAddGroup={onAddGroup}
-            />
+        <div className="space-y-2 mb-4">
+           <LicensingAlerts alerts={licensingAlerts} findVehicleById={findVehicleById} />
+           <MaintenanceAlerts alerts={maintenanceAlerts} findVehicleById={findVehicleById} />
         </div>
       )}
 
