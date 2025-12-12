@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import type { Vehicle, CompanyId, MaintenanceItem, Group, Sale } from '@/lib/types';
 import { COMPANIES } from '@/lib/types';
 import { formatCurrency, cn, getLicensingInfo } from '@/lib/utils';
-import { Handshake, Pencil, Building, ArrowRightLeft, FileText, Undo2, Edit, CloudUpload, Wrench, Plus, Loader2, BrainCircuit, MessageSquareText, FileBadge } from 'lucide-react';
+import { Handshake, Pencil, Building, ArrowRightLeft, FileText, Undo2, Edit, CloudUpload, Wrench, Plus, Loader2, BrainCircuit, MessageSquareText, FileBadge, Check } from 'lucide-react';
 import { extractMaintenanceDataAction, analyzeMaintenanceHistoryAction } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '../ui/scroll-area';
@@ -241,7 +241,7 @@ export default function VehicleDetailsModal({
         return;
     }
     const newMaintenance = {
-        id: `maint-${vehicle.id}-${Date.now()}`,
+        id: `maint-${vehicle.id}-${Date.now()}-${Math.random()}`,
         data: maintDate,
         km: parseInt(maintKm, 10),
         fornecedor: maintFornecedor,
