@@ -27,8 +27,8 @@ const LicensingAlerts: React.FC<LicensingAlertsProps> = ({ alerts, findVehicleBy
         const iconColor = isExpired ? '!text-red-500' : '!text-orange-500';
 
         const message = isExpired
-            ? `Licenciamento vencido desde ${new Date(alert.dueDate).toLocaleDateString('pt-BR')}.`
-            : `Licenciamento vence em ${alert.daysRemaining} dia(s) (${new Date(alert.dueDate).toLocaleDateString('pt-BR')}).`;
+            ? `Licenciamento vencido desde ${new Date(alert.dueDate).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}.`
+            : `Licenciamento vence em ${alert.daysRemaining} dia(s) (${new Date(alert.dueDate).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}).`;
 
 
         return (
