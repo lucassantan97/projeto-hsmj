@@ -20,7 +20,7 @@ const generateMaintenances = (count: number, vehicleId: string): Maintenance[] =
         }));
         lastKm += 10000 + Math.floor(Math.random() * 2000 - 1000);
         maintenances.push({
-            id: `maint-${vehicleId}-${i}`,
+            id: `maint-${vehicleId}-${i}-${Math.random().toString(36).slice(2)}`,
             data: maintDate.toISOString().split('T')[0],
             km: lastKm,
             fornecedor: suppliers[Math.floor(Math.random() * suppliers.length)],

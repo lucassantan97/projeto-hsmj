@@ -241,7 +241,7 @@ export default function VehicleDetailsModal({
         return;
     }
     const newMaintenance = {
-        id: `maint-${vehicle.id}-${Date.now()}-${Math.random()}`,
+        id: `maint-${vehicle.id}-${Date.now()}-${Math.random().toString(36).slice(2)}`,
         data: maintDate,
         km: parseInt(maintKm, 10),
         fornecedor: maintFornecedor,
