@@ -239,7 +239,7 @@
         }
       },
       {
-        "path": "/artifacts/sistema-frota-hs-mj-v13-hybrid/users/{userId}/frota/{vehicleId}",
+        "path": "/artifacts/hsmjfrota/users/{userId}/frota/{vehicleId}",
         "definition": {
           "entityName": "Vehicle",
           "schema": {
@@ -259,7 +259,7 @@
         }
       },
       {
-        "path": "/artifacts/sistema-frota-hs-mj-v13-hybrid/users/{userId}/frota/{vehicleId}/manutencoes/{maintenanceRecordId}",
+        "path": "/artifacts/hsmjfrota/users/{userId}/frota/{vehicleId}/manutencoes/{maintenanceRecordId}",
         "definition": {
           "entityName": "MaintenanceRecord",
           "schema": {
@@ -283,7 +283,7 @@
         }
       },
       {
-        "path": "/artifacts/sistema-frota-hs-mj-v13-hybrid/users/{userId}/config_groups/{groupId}",
+        "path": "/artifacts/hsmjfrota/users/{userId}/config_groups/{groupId}",
         "definition": {
           "entityName": "Group",
           "schema": {
@@ -303,7 +303,7 @@
         }
       },
       {
-        "path": "/artifacts/sistema-frota-hs-mj-v13-hybrid/users/{userId}/frota/{vehicleId}/saleInformation/{saleInformationId}",
+        "path": "/artifacts/hsmjfrota/users/{userId}/frota/{vehicleId}/saleInformation/{saleInformationId}",
         "definition": {
           "entityName": "SaleInformation",
           "schema": {

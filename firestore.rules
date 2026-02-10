@@ -10,7 +10,7 @@
  *
  * Data Structure:
  * - /users/{userId}/profile: A single document for a user's profile.
- * - /artifacts/sistema-frota-hs-mj-v13-hybrid/users/{userId}/...: A dedicated, versioned
+ * - /artifacts/hsmjfrota/users/{userId}/...: A dedicated, versioned
  *   path containing all fleet management data for a specific user. This includes:
  *   - /frota/{vehicleId}: Contains vehicle documents.
  *   - /frota/{vehicleId}/manutencoes/{recordId}: Subcollection for maintenance records.
@@ -158,11 +158,11 @@ service cloud.firestore {
     // Application Data Rules
     // ------------------------------------------------------------------------
 
-    match /artifacts/sistema-frota-hs-mj-v13-hybrid/users/{userId} {
+    match /artifacts/hsmjfrota/users/{userId} {
 
       /**
        * @description Controls access to the collection of vehicles owned by a user.
-       * @path /artifacts/sistema-frota-hs-mj-v13-hybrid/users/{userId}/frota/{vehicleId}
+       * @path /artifacts/hsmjfrota/users/{userId}/frota/{vehicleId}
        * @allow (create) User 'abc' creating a new vehicle in their own /frota collection.
        * @deny (list) User 'xyz' trying to list vehicles belonging to user 'abc'.
        * @principle Enforces strict ownership for all CRUD operations on a user's data.
@@ -176,7 +176,7 @@ service cloud.firestore {
 
         /**
          * @description Controls access to maintenance records for a specific vehicle.
-         * @path /artifacts/sistema-frota-hs-mj-v13-hybrid/users/{userId}/frota/{vehicleId}/manutencoes/{maintenanceRecordId}
+         * @path /artifacts/hsmjfrota/users/{userId}/frota/{vehicleId}/manutencoes/{maintenanceRecordId}
          * @allow (get) User 'abc' reading a maintenance record for one of their own vehicles.
          * @deny (create) User 'xyz' trying to add a maintenance record to a vehicle owned by 'abc'.
          * @principle Inherits ownership from the parent user path for secure subcollection access.
@@ -191,7 +191,7 @@ service cloud.firestore {
 
         /**
          * @description Controls access to sale information for a specific vehicle.
-         * @path /artifacts/sistema-frota-hs-mj-v13-hybrid/users/{userId}/frota/{vehicleId}/saleInformation/{saleInformationId}
+         * @path /artifacts/hsmjfrota/users/{userId}/frota/{vehicleId}/saleInformation/{saleInformationId}
          * @allow (create) User 'abc' adding sale information to one of their own vehicles.
          * @deny (update) User 'xyz' attempting to modify sale info on a vehicle owned by 'abc'.
          * @principle Inherits ownership from the parent user path for secure subcollection access.
@@ -207,7 +207,7 @@ service cloud.firestore {
 
       /**
        * @description Controls access to user-defined vehicle groups.
-       * @path /artifacts/sistema-frota-hs-mj-v13-hybrid/users/{userId}/config_groups/{groupId}
+       * @path /artifacts/hsmjfrota/users/{userId}/config_groups/{groupId}
        * @allow (list) User 'abc' listing their own configured groups.
        * @deny (delete) User 'xyz' trying to delete a group belonging to user 'abc'.
        * @principle Enforces strict ownership for all CRUD operations on a user's configuration data.
