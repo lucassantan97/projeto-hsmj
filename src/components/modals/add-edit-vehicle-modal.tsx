@@ -220,8 +220,11 @@ export default function AddEditVehicleModal({
             />
 
             <DialogFooter className="pt-4 border-t">
-                <Button type="submit" className={`bg-${companyTheme} hover:bg-${companyTheme}/90 text-primary-foreground font-bold py-3 px-10 rounded-xl`}>
-                    Salvar Veículo
+                <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>
+                    Cancelar
+                </Button>
+                <Button type="submit" className={`bg-${companyTheme} hover:bg-${companyTheme}/90 text-primary-foreground font-bold`}>
+                    {vehicle ? 'Salvar Alterações' : 'Confirmar Cadastro'}
                 </Button>
             </DialogFooter>
           </form>
