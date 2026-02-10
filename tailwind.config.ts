@@ -9,6 +9,16 @@ const config = {
     './src/**/*.{ts,tsx}',
   ],
   prefix: '',
+  safelist: [
+    'border-hsRed',
+    'border-mjOrange',
+    'bg-hsRed',
+    'hover:bg-hsRed/90',
+    'bg-mjOrange',
+    'hover:bg-mjOrange/90',
+    'text-hsRed',
+    'text-mjOrange',
+  ],
   theme: {
     container: {
       center: true,
