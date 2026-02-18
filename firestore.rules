@@ -1,222 +1,213 @@
 /**
- * This ruleset enforces a strict user-ownership model for a fleet management application.
- * All user-generated data is stored within a user-specific path, ensuring that users can only
- * access and manage their own information.
+ * Core Philosophy: This ruleset enforces a strict user-ownership model where all
+ * data is partitioned by user. Each user can only access and manage their own
+ * data, ensuring strong multi-tenancy and preventing data leakage between users.
  *
- * Core Philosophy:
- * The security model is centered on path-based ownership. Every document is located
- * under a path containing the user's unique ID (e.g., `/users/{userId}/...`). This structure
- * inherently isolates user data, making rules simple, performant, and secure by default.
- *
- * Data Structure:
- * - /users/{userId}/profile: A single document for a user's profile.
- * - /artifacts/hsmjfrota/users/{userId}/...: A dedicated, versioned
- *   path containing all fleet management data for a specific user. This includes:
- *   - /frota/{vehicleId}: Contains vehicle documents.
- *   - /frota/{vehicleId}/manutencoes/{recordId}: Subcollection for maintenance records.
- *   - /frota/{vehicleId}/saleInformation/{saleId}: Subcollection for sale details.
- *   - /config_groups/{groupId}: Subcollection for vehicle group configurations.
+ * Data Structure: All application data is nested under the top-level `/users/{userId}`
+ * collection, where `{userId}` corresponds to the Firebase Authentication UID. This
+ * creates a private data tree for each user, containing their profile, vehicles,
+ * maintenance records, and sales history. This structure is inherently secure and
+ * simplifies queries.
  *
  * Key Security Decisions:
- * - Default Deny: All paths are closed by default. Access is only granted explicitly.
- * - Strict Ownership: All operations (read, write, delete) are restricted to the
- *   authenticated user whose UID matches the `{userId}` in the document path.
- * - No Public Data: There are no globally readable collections. All data is private.
- * - No User Listing: It is not possible to list all users in the system.
- * - Relational Integrity: On document creation, rules validate that internal ID fields
- *   (e.g., `vehicleId`) match the corresponding IDs in the document path. These fields are
- *   enforced as immutable upon update to maintain data consistency.
+ * - Default Deny: All access is denied by default. Rules are explicit 'allow'
+ *   statements.
+ * - User Isolation: Users are strictly forbidden from reading or writing data
+ *   outside of their own `/users/{userId}` path. Listing user profiles is disabled.
+ * - Authorization Independence: Every document contains a denormalized `ownerUserId`
+ *   field. This allows security rules to make fast, efficient authorization
+ *   decisions without needing costly `get()` calls to parent documents, which
+ *   also supports atomic batch/transaction operations.
+ * - Relational Integrity: On document creation, rules validate that the `ownerUserId`
+ *   and other ID fields within the document's data match the IDs in the document's
+ *   path. On update, these critical relational fields are enforced as immutable to
+ *   prevent documents from being moved or reassigned.
  *
- * Denormalization for Authorization:
- * Authorization is based entirely on the `{userId}` wildcard in the document path. This
- * avoids the need for slow and costly `get()` calls to other documents to verify
- * ownership, resulting in a highly performant and scalable security model.
- *
- * Structural Segregation:
- * All user data is segregated into distinct subcollections under their unique user ID,
- * preventing data leakage between users and simplifying list queries.
+ * Prototyping Flexibility: In this prototyping phase, rules focus on *authorization*
+ * (who can access what) and not *data validation* (the shape of the data).
+ * Schema enforcement is intentionally omitted to allow for rapid iteration on the
+ * client-side application.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // ------------------------------------------------------------------------
+    //-------------------------------------------------------------------------
     // Helper Functions
-    // ------------------------------------------------------------------------
+    //-------------------------------------------------------------------------
 
     /**
-     * Checks if the user is authenticated.
+     * Returns true if the user is authenticated.
      */
     function isSignedIn() {
       return request.auth != null;
     }
 
     /**
-     * Checks if the currently authenticated user's UID matches the provided userId.
+     * Returns true if the authenticated user's UID matches the provided userId.
+     * This is the cornerstone of the user-ownership model.
+     * @param userId The UID of the document owner.
      */
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
 
     /**
-     * Checks for ownership on an existing document. Used for update/delete operations.
+     * Returns true if the user is the owner and the document already exists.
+     * Used for safe update and delete operations.
+     * @param userId The UID of the document owner.
      */
     function isExistingOwner(userId) {
       return isOwner(userId) && resource != null;
     }
 
     /**
-     * On create, validates that the user profile's internal ID matches the document path.
+     * Validates that the UserProfile being created has an `id` that matches the
+     * document's path ID (`userId`).
+     * @param userId The `{userId}` from the path.
      */
-    function hasValidUserProfileData(userId) {
+    function hasValidUserProfileDataOnCreate(userId) {
       return request.resource.data.id == userId;
     }
 
     /**
-     * On update, ensures the user profile's internal ID is immutable.
+     * Enforces immutability of the UserProfile's `id` field during an update.
      */
-    function isUserProfileDataImmutable() {
+    function hasImmutableUserProfileDataOnUpdate() {
       return request.resource.data.id == resource.data.id;
+    }
+
+    /**
+     * Validates that data being created contains the correct owner and path IDs.
+     * Ensures relational integrity between the document and its path.
+     * @param ownerId The `{userId}` from the path.
+     * @param docId The document ID wildcard from the path.
+     */
+    function hasValidOwnerAndDocId(ownerId, docId) {
+      let incomingData = request.resource.data;
+      return incomingData.ownerUserId == ownerId && incomingData.id == docId;
     }
     
     /**
-     * On create, validates that the vehicle's internal ID matches the document path.
+     * Enforces immutability of `ownerUserId` and `id` fields during an update.
      */
-    function hasValidVehicleData(vehicleId) {
-      return request.resource.data.id == vehicleId;
+    function hasImmutableOwnerAndDocId() {
+      let incomingData = request.resource.data;
+      let existingData = resource.data;
+      return incomingData.ownerUserId == existingData.ownerUserId && incomingData.id == existingData.id;
     }
 
     /**
-     * On update, ensures the vehicle's internal ID is immutable.
+     * Validates MaintenanceRecord data, which has an extra layer of relational nesting.
+     * @param ownerId The `{userId}` from the path.
+     * @param vehicleId The parent `{vehicleId}` from the path.
+     * @param recordId The `{maintenanceRecordId}` from the path.
      */
-    function isVehicleDataImmutable() {
-      return request.resource.data.id == resource.data.id;
-    }
-
-    /**
-     * On create, validates relational IDs for a new maintenance record.
-     */
-    function hasValidMaintenanceData(vehicleId, maintenanceRecordId) {
-      return request.resource.data.id == maintenanceRecordId && request.resource.data.vehicleId == vehicleId;
-    }
-
-    /**
-     * On update, ensures relational IDs for a maintenance record are immutable.
-     */
-    function isMaintenanceDataImmutable() {
-      return request.resource.data.id == resource.data.id && request.resource.data.vehicleId == resource.data.vehicleId;
-    }
-
-    /**
-     * On create, validates relational IDs for new sale information.
-     */
-    function hasValidSaleData(vehicleId, saleInformationId) {
-      return request.resource.data.id == saleInformationId && request.resource.data.vehicleId == vehicleId;
+    function hasValidMaintenanceRecordData(ownerId, vehicleId, recordId) {
+      let incomingData = request.resource.data;
+      return incomingData.ownerUserId == ownerId && incomingData.vehicleId == vehicleId && incomingData.id == recordId;
     }
     
     /**
-     * On update, ensures relational IDs for sale information are immutable.
+     * Enforces immutability for all relational IDs on a MaintenanceRecord.
      */
-    function isSaleDataImmutable() {
-      return request.resource.data.id == resource.data.id && request.resource.data.vehicleId == resource.data.vehicleId;
+    function hasImmutableMaintenanceRecordData() {
+        let incomingData = request.resource.data;
+        let existingData = resource.data;
+        return incomingData.ownerUserId == existingData.ownerUserId && incomingData.vehicleId == existingData.vehicleId && incomingData.id == existingData.id;
     }
 
-    /**
-     * On create, validates that the group's internal ID matches the document path.
-     */
-    function hasValidGroupData(groupId) {
-      return request.resource.data.id == groupId;
-    }
+    //-------------------------------------------------------------------------
+    // User Profiles
+    //-------------------------------------------------------------------------
 
     /**
-     * On update, ensures the group's internal ID is immutable.
+     * @description Manages a user's own profile document.
+     * @path /users/{userId}
+     * @allow (create) An authenticated user can create their own user profile document.
+     * @deny  (create) A user 'user_abc' tries to create a profile for 'user_xyz'.
+     * @principle A user's root document can only be created by the user themselves.
      */
-    function isGroupDataImmutable() {
-      return request.resource.data.id == resource.data.id;
-    }
-
-    // ------------------------------------------------------------------------
-    // User Profile Rules
-    // ------------------------------------------------------------------------
-
-    /**
-     * @description Controls access to a user's own profile document.
-     * @path /users/{userId}/profile
-     * @allow (get/update/delete) A signed-in user accessing their own profile document.
-     * @deny (get/create/update/delete) A user trying to access another user's profile.
-     * @principle Restricts access to a user's own data tree.
-     */
-    match /users/{userId}/profile {
+    match /users/{userId} {
       allow get: if isOwner(userId);
-      allow list: if false; // This is a single document path, list is not applicable.
-      allow create: if isOwner(userId) && hasValidUserProfileData(userId);
-      allow update: if isExistingOwner(userId) && isUserProfileDataImmutable();
+      allow list: if false;
+      allow create: if isOwner(userId) && hasValidUserProfileDataOnCreate(userId);
+      allow update: if isExistingOwner(userId) && hasImmutableUserProfileDataOnUpdate();
       allow delete: if isExistingOwner(userId);
-    }
 
-    // ------------------------------------------------------------------------
-    // Application Data Rules
-    // ------------------------------------------------------------------------
-
-    match /artifacts/hsmjfrota/users/{userId} {
+      //-----------------------------------------------------------------------
+      // Vehicle Groups
+      //-----------------------------------------------------------------------
 
       /**
-       * @description Controls access to the collection of vehicles owned by a user.
-       * @path /artifacts/hsmjfrota/users/{userId}/frota/{vehicleId}
-       * @allow (create) User 'abc' creating a new vehicle in their own /frota collection.
-       * @deny (list) User 'xyz' trying to list vehicles belonging to user 'abc'.
-       * @principle Enforces strict ownership for all CRUD operations on a user's data.
+       * @description A user's collection of vehicle groups.
+       * @path /users/{userId}/vehicleGroups/{vehicleGroupId}
+       * @allow (create) 'user_abc' creates a new vehicle group in their own collection.
+       * @deny  (get) 'user_xyz' tries to read a vehicle group belonging to 'user_abc'.
+       * @principle Enforces document ownership within a user's private data tree.
        */
-      match /frota/{vehicleId} {
+      match /vehicleGroups/{vehicleGroupId} {
         allow get: if isOwner(userId);
         allow list: if isOwner(userId);
-        allow create: if isOwner(userId) && hasValidVehicleData(vehicleId);
-        allow update: if isExistingOwner(userId) && isVehicleDataImmutable();
+        allow create: if isOwner(userId) && hasValidOwnerAndDocId(userId, vehicleGroupId);
+        allow update: if isExistingOwner(userId) && hasImmutableOwnerAndDocId();
+        allow delete: if isExistingOwner(userId);
+      }
+
+      //-----------------------------------------------------------------------
+      // Vehicles
+      //-----------------------------------------------------------------------
+
+      /**
+       * @description A user's collection of vehicles.
+       * @path /users/{userId}/vehicles/{vehicleId}
+       * @allow (list) 'user_abc' lists all vehicles in their own collection.
+       * @deny  (update) 'user_xyz' tries to modify a vehicle belonging to 'user_abc'.
+       * @principle Restricts access to a user's own data tree.
+       */
+      match /vehicles/{vehicleId} {
+        allow get: if isOwner(userId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) && hasValidOwnerAndDocId(userId, vehicleId);
+        allow update: if isExistingOwner(userId) && hasImmutableOwnerAndDocId();
         allow delete: if isExistingOwner(userId);
 
-        /**
-         * @description Controls access to maintenance records for a specific vehicle.
-         * @path /artifacts/hsmjfrota/users/{userId}/frota/{vehicleId}/manutencoes/{maintenanceRecordId}
-         * @allow (get) User 'abc' reading a maintenance record for one of their own vehicles.
-         * @deny (create) User 'xyz' trying to add a maintenance record to a vehicle owned by 'abc'.
-         * @principle Inherits ownership from the parent user path for secure subcollection access.
-         */
-        match /manutencoes/{maintenanceRecordId} {
-          allow get: if isOwner(userId);
-          allow list: if isOwner(userId);
-          allow create: if isOwner(userId) && hasValidMaintenanceData(vehicleId, maintenanceRecordId);
-          allow update: if isExistingOwner(userId) && isMaintenanceDataImmutable();
-          allow delete: if isExistingOwner(userId);
-        }
+        //---------------------------------------------------------------------
+        // Maintenance Records
+        //---------------------------------------------------------------------
 
         /**
-         * @description Controls access to sale information for a specific vehicle.
-         * @path /artifacts/hsmjfrota/users/{userId}/frota/{vehicleId}/saleInformation/{saleInformationId}
-         * @allow (create) User 'abc' adding sale information to one of their own vehicles.
-         * @deny (update) User 'xyz' attempting to modify sale info on a vehicle owned by 'abc'.
-         * @principle Inherits ownership from the parent user path for secure subcollection access.
+         * @description Maintenance records for a specific vehicle.
+         * @path /users/{userId}/vehicles/{vehicleId}/maintenanceRecords/{maintenanceRecordId}
+         * @allow (create) 'user_abc' adds a maintenance record to one of their own vehicles.
+         * @deny  (get) An unauthenticated user tries to read any maintenance record.
+         * @principle Validates relational integrity between documents and their nested paths.
          */
-        match /saleInformation/{saleInformationId} {
+        match /maintenanceRecords/{maintenanceRecordId} {
           allow get: if isOwner(userId);
           allow list: if isOwner(userId);
-          allow create: if isOwner(userId) && hasValidSaleData(vehicleId, saleInformationId);
-          allow update: if isExistingOwner(userId) && isSaleDataImmutable();
+          allow create: if isOwner(userId) && hasValidMaintenanceRecordData(userId, vehicleId, maintenanceRecordId);
+          allow update: if isExistingOwner(userId) && hasImmutableMaintenanceRecordData();
           allow delete: if isExistingOwner(userId);
         }
       }
 
+      //-----------------------------------------------------------------------
+      // Sales
+      //-----------------------------------------------------------------------
+
       /**
-       * @description Controls access to user-defined vehicle groups.
-       * @path /artifacts/hsmjfrota/users/{userId}/config_groups/{groupId}
-       * @allow (list) User 'abc' listing their own configured groups.
-       * @deny (delete) User 'xyz' trying to delete a group belonging to user 'abc'.
-       * @principle Enforces strict ownership for all CRUD operations on a user's configuration data.
+       * @description A user's collection of vehicle sale records.
+       * @path /users/{userId}/sales/{saleId}
+       * @allow (delete) 'user_abc' deletes a sale record they created.
+       * @deny  (create) 'user_xyz' tries to create a sale record under 'user_abc's account.
+       * @principle Enforces document ownership and validates relational IDs on creation.
        */
-      match /config_groups/{groupId} {
+      match /sales/{saleId} {
         allow get: if isOwner(userId);
         allow list: if isOwner(userId);
-        allow create: if isOwner(userId) && hasValidGroupData(groupId);
-        allow update: if isExistingOwner(userId) && isGroupDataImmutable();
+        allow create: if isOwner(userId) && hasValidOwnerAndDocId(userId, saleId);
+        allow update: if isExistingOwner(userId) && hasImmutableOwnerAndDocId();
         allow delete: if isExistingOwner(userId);
       }
     }

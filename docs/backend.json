@@ -1,332 +1,323 @@
 {
   "entities": {
-    "Vehicle": {
+    "UserProfile": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Vehicle",
+      "title": "UserProfile",
       "type": "object",
-      "description": "Represents a vehicle in the fleet.",
+      "description": "Stores user account information and profile details for system access and personalization. This entity works in conjunction with an external authentication system (e.g., Firebase Auth) which manages password hashing and secure token generation. It also handles the email verification process for new registrations.",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the vehicle."
+          "description": "Unique identifier for the UserProfile entity. This typically corresponds to the user's UID from the authentication system."
         },
-        "empresa": {
+        "fullName": {
           "type": "string",
-          "description": "The company the vehicle belongs to (HS or MJ)."
+          "description": "The full name of the user as provided during registration."
         },
-        "placa": {
+        "dateOfBirth": {
           "type": "string",
-          "description": "The license plate number of the vehicle."
-        },
-        "modelo": {
-          "type": "string",
-          "description": "The model of the vehicle."
-        },
-        "cliente": {
-          "type": "string",
-          "description": "The client or group the vehicle is assigned to."
-        },
-        "renavam": {
-          "type": "string",
-          "description": "The Renavam number of the vehicle."
-        },
-        "chassi": {
-          "type": "string",
-          "description": "The chassis number of the vehicle."
-        },
-        "anoModelo": {
-          "type": "string",
-          "description": "The year and model of the vehicle."
-        },
-        "dataEntrada": {
-          "type": "string",
-          "description": "The date the vehicle entered the fleet.",
+          "description": "The user's date of birth in YYYY-MM-DD format.",
           "format": "date"
         },
-        "valorCompra": {
-          "type": "number",
-          "description": "The purchase price of the vehicle."
-        },
-        "status": {
+        "email": {
           "type": "string",
-          "description": "The current status of the vehicle (e.g., active, sold)."
+          "description": "The user's email address, used for login and notifications. Must be unique across all users.",
+          "format": "email"
         },
-        "vendaInfo": {
-          "type": "string",
-          "description": "Reference to SaleInformation. (Relationship: Vehicle 1:1 SaleInformation)"
+        "emailVerified": {
+          "type": "boolean",
+          "description": "Indicates whether the user's email address has been successfully verified. True after the user confirms their email with a code or link."
         },
-        "observacao": {
+        "createdAt": {
           "type": "string",
-          "description": "General observations about the vehicle."
+          "description": "Timestamp indicating when the user account was initially created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the user account was last updated.",
+          "format": "date-time"
+        },
+        "verificationCode": {
+          "type": "string",
+          "description": "A temporary 6-digit code sent to the user's email for registration confirmation. This field should be cleared or invalidated after successful verification, expiration, or upon user login. (Temporary data)"
+        },
+        "verificationCodeExpiresAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the verification code expires, typically 10 minutes after generation. (Temporary data)",
+          "format": "date-time"
         }
       },
       "required": [
         "id",
-        "empresa",
-        "placa",
-        "modelo",
-        "cliente",
+        "fullName",
+        "dateOfBirth",
+        "email",
+        "emailVerified",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "Vehicle": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Vehicle",
+      "type": "object",
+      "description": "Represents a single vehicle within a fleet. Each vehicle is owned by a specific user and associated with one of the predefined companies (HS or MJ Locadora).",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Vehicle entity."
+        },
+        "ownerUserId": {
+          "type": "string",
+          "description": "Reference to the UserProfile who owns and manages this vehicle's data. (Relationship: UserProfile 1:N Vehicle)"
+        },
+        "company": {
+          "type": "string",
+          "description": "The identifier of the company (e.g., 'HS' or 'MJ') to which this vehicle belongs. Used for filtering and contextualizing vehicle data within the owner's fleet."
+        },
+        "plate": {
+          "type": "string",
+          "description": "The vehicle's license plate number, usually in uppercase."
+        },
+        "model": {
+          "type": "string",
+          "description": "The make and model of the vehicle (e.g., 'Fiat Uno', 'Chevrolet Onix')."
+        },
+        "groupId": {
+          "type": "string",
+          "description": "Reference to the VehicleGroup this vehicle belongs to, identifying a logical grouping (e.g., department, client). (Relationship: VehicleGroup 1:N Vehicle)"
+        },
+        "renavam": {
+          "type": "string",
+          "description": "The RENAVAM (Registro Nacional de Veículos Automotores) number, a unique identifier for vehicles in Brazil."
+        },
+        "chassis": {
+          "type": "string",
+          "description": "The chassis number (Vehicle Identification Number - VIN) of the vehicle."
+        },
+        "yearModel": {
+          "type": "string",
+          "description": "The manufacturing year and model year of the vehicle (e.g., '2022/2023')."
+        },
+        "purchaseDate": {
+          "type": "string",
+          "description": "The date when the vehicle was purchased and added to the fleet, in YYYY-MM-DD format.",
+          "format": "date"
+        },
+        "purchaseValue": {
+          "type": "number",
+          "description": "The original purchase value of the vehicle in Brazilian Reals (R$).",
+          "format": "float"
+        },
+        "status": {
+          "type": "string",
+          "description": "The current operational status of the vehicle (e.g., 'ativo' for active in fleet, 'vendido' for sold)."
+        }
+      },
+      "required": [
+        "id",
+        "ownerUserId",
+        "company",
+        "plate",
+        "model",
+        "groupId",
+        "purchaseDate",
+        "purchaseValue",
         "status"
+      ]
+    },
+    "VehicleGroup": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "VehicleGroup",
+      "type": "object",
+      "description": "Categorizes vehicles into logical groups (e.g., by department, client, or location) specific to a user's fleet.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the VehicleGroup entity."
+        },
+        "ownerUserId": {
+          "type": "string",
+          "description": "Reference to the UserProfile who owns and created this vehicle group. (Relationship: UserProfile 1:N VehicleGroup)"
+        },
+        "name": {
+          "type": "string",
+          "description": "The user-defined name of the vehicle group (e.g., 'Frota Leve', 'Organismo Público', 'Setor Administrativo')."
+        },
+        "company": {
+          "type": "string",
+          "description": "The identifier of the company (e.g., 'HS' or 'MJ') with which this group is associated. Used to filter groups per company within the owner's context."
+        }
+      },
+      "required": [
+        "id",
+        "ownerUserId",
+        "name",
+        "company"
       ]
     },
     "MaintenanceRecord": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "MaintenanceRecord",
       "type": "object",
-      "description": "Represents a maintenance record for a vehicle.",
+      "description": "Details a single maintenance event performed on a specific vehicle, including items serviced, associated costs, and relevant information.",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the maintenance record."
+          "description": "Unique identifier for the MaintenanceRecord entity."
         },
         "vehicleId": {
           "type": "string",
-          "description": "Reference to Vehicle. (Relationship: Vehicle 1:N MaintenanceRecord)"
+          "description": "Reference to the Vehicle to which this maintenance record belongs. (Relationship: Vehicle 1:N MaintenanceRecord)"
         },
-        "data": {
+        "ownerUserId": {
           "type": "string",
-          "description": "The date the maintenance was performed.",
+          "description": "Reference to the UserProfile who owns the vehicle associated with this maintenance record. (Relationship: UserProfile 1:N MaintenanceRecord)"
+        },
+        "date": {
+          "type": "string",
+          "description": "The date when the maintenance was performed, in YYYY-MM-DD format.",
           "format": "date"
         },
-        "km": {
+        "kilometerReading": {
           "type": "number",
-          "description": "The odometer reading at the time of maintenance."
+          "description": "The vehicle's odometer reading (in kilometers) at the time of maintenance."
         },
-        "fornecedor": {
+        "supplier": {
           "type": "string",
-          "description": "The name of the maintenance provider."
+          "description": "The name of the supplier, workshop, or mechanic that performed the maintenance service."
         },
         "items": {
           "type": "array",
-          "description": "A list of maintenance items.",
+          "description": "A list of individual maintenance items or services that were part of this record, along with their respective costs.",
           "items": {
             "type": "string"
           }
         },
-        "total": {
+        "totalCost": {
           "type": "number",
-          "description": "The total cost of the maintenance."
+          "description": "The total cost of this maintenance record, typically calculated as the sum of all individual items.",
+          "format": "float"
         }
       },
       "required": [
         "id",
         "vehicleId",
-        "data",
-        "km",
-        "fornecedor",
+        "ownerUserId",
+        "date",
+        "kilometerReading",
+        "supplier",
         "items",
-        "total"
+        "totalCost"
       ]
     },
-    "SaleInformation": {
+    "Sale": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "SaleInformation",
+      "title": "Sale",
       "type": "object",
-      "description": "Represents the sale information for a sold vehicle.",
+      "description": "Records details of a vehicle sale transaction, marking a vehicle as sold and tracking the associated revenue.",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the sale information."
+          "description": "Unique identifier for the Sale entity."
         },
         "vehicleId": {
           "type": "string",
-          "description": "Reference to Vehicle. (Relationship: Vehicle 1:1 SaleInformation)"
+          "description": "Reference to the Vehicle that was sold. (Relationship: Vehicle 1:1 Sale)"
         },
-        "dataVenda": {
+        "ownerUserId": {
           "type": "string",
-          "description": "The date the vehicle was sold.",
+          "description": "Reference to the UserProfile who owns the vehicle associated with this sale record. (Relationship: UserProfile 1:N Sale)"
+        },
+        "saleDate": {
+          "type": "string",
+          "description": "The date when the vehicle was officially sold, in YYYY-MM-DD format.",
           "format": "date"
         },
-        "valorVenda": {
+        "saleValue": {
           "type": "number",
-          "description": "The sale price of the vehicle."
+          "description": "The final selling price of the vehicle in Brazilian Reals (R$).",
+          "format": "float"
         },
-        "comprador": {
+        "buyerName": {
           "type": "string",
-          "description": "The name of the buyer."
+          "description": "The full name of the buyer who purchased the vehicle."
         },
-        "salesDescription": {
+        "description": {
           "type": "string",
-          "description": "Description of the vehicle sale."
+          "description": "An optional detailed description of the sale, possibly generated by AI to describe the vehicle's features or sale terms."
         }
       },
       "required": [
         "id",
         "vehicleId",
-        "dataVenda",
-        "valorVenda",
-        "comprador"
-      ]
-    },
-    "Group": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Group",
-      "type": "object",
-      "description": "Represents a group of vehicles.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the group."
-        },
-        "name": {
-          "type": "string",
-          "description": "The name of the group."
-        },
-        "company": {
-          "type": "string",
-          "description": "The company the group belongs to (HS or MJ)."
-        }
-      },
-      "required": [
-        "id",
-        "name",
-        "company"
-      ]
-    },
-    "UserProfile": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "UserProfile",
-      "type": "object",
-      "description": "Represents a user profile.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the user profile."
-        },
-        "displayName": {
-          "type": "string",
-          "description": "The display name of the user."
-        },
-        "email": {
-          "type": "string",
-          "description": "The email address of the user.",
-          "format": "email"
-        },
-        "photoURL": {
-          "type": "string",
-          "description": "The URL of the user's profile photo.",
-          "format": "uri"
-        }
-      },
-      "required": [
-        "id"
+        "ownerUserId",
+        "saleDate",
+        "saleValue",
+        "buyerName"
       ]
     }
   },
   "auth": {
     "providers": [
       "password",
-      "anonymous",
-      "google.com"
+      "anonymous"
     ]
   },
   "firestore": {
     "structure": [
       {
-        "path": "/users/{userId}/profile",
+        "path": "/users/{userId}",
         "definition": {
           "entityName": "UserProfile",
           "schema": {
             "$ref": "#/backend/entities/UserProfile"
           },
-          "description": "Stores user profile information. Path-based ownership ensures only the authenticated user can access their profile.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier of the user."
-            }
-          ]
+          "description": "Stores user account information, profile details, and email verification status. Access is restricted to the authenticated user matching `userId`. Includes `emailVerified`, `verificationCode`, and `verificationCodeExpiresAt` fields for managing the email verification process. The `id` field within the document must match the `{userId}` wildcard."
         }
       },
       {
-        "path": "/artifacts/hsmjfrota/users/{userId}/frota/{vehicleId}",
+        "path": "/users/{userId}/vehicleGroups/{vehicleGroupId}",
+        "definition": {
+          "entityName": "VehicleGroup",
+          "schema": {
+            "$ref": "#/backend/entities/VehicleGroup"
+          },
+          "description": "Categorizes vehicles into logical groups, each owned by a specific user. Includes denormalized 'ownerUserId' (matching the parent `{userId}` in the path) for authorization independence. The `id` field within the document must match the `{vehicleGroupId}` wildcard."
+        }
+      },
+      {
+        "path": "/users/{userId}/vehicles/{vehicleId}",
         "definition": {
           "entityName": "Vehicle",
           "schema": {
             "$ref": "#/backend/entities/Vehicle"
           },
-          "description": "Stores vehicle data. Includes denormalized 'empresa' and 'cliente' for authorization independence.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier of the user."
-            },
-            {
-              "name": "vehicleId",
-              "description": "The unique identifier of the vehicle."
-            }
-          ]
+          "description": "Represents a single vehicle in a user's fleet. Includes denormalized 'ownerUserId' (matching the parent `{userId}` in the path) for authorization independence. The `id` field within the document must match the `{vehicleId}` wildcard."
         }
       },
       {
-        "path": "/artifacts/hsmjfrota/users/{userId}/frota/{vehicleId}/manutencoes/{maintenanceRecordId}",
+        "path": "/users/{userId}/vehicles/{vehicleId}/maintenanceRecords/{maintenanceRecordId}",
         "definition": {
           "entityName": "MaintenanceRecord",
           "schema": {
             "$ref": "#/backend/entities/MaintenanceRecord"
           },
-          "description": "Stores maintenance records for a specific vehicle.  Authorization is based on the parent vehicle's 'empresa' and user ID, denormalized from the parent document.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier of the user."
-            },
-            {
-              "name": "vehicleId",
-              "description": "The unique identifier of the vehicle."
-            },
-            {
-              "name": "maintenanceRecordId",
-              "description": "The unique identifier of the maintenance record."
-            }
-          ]
+          "description": "Details a single maintenance event for a specific vehicle. Includes denormalized 'ownerUserId' (matching the grandparent `{userId}` in the path) and 'vehicleId' (matching the parent `{vehicleId}` in the path) for robust authorization independence. The `id` field within the document must match the `{maintenanceRecordId}` wildcard."
         }
       },
       {
-        "path": "/artifacts/hsmjfrota/users/{userId}/config_groups/{groupId}",
+        "path": "/users/{userId}/sales/{saleId}",
         "definition": {
-          "entityName": "Group",
+          "entityName": "Sale",
           "schema": {
-            "$ref": "#/backend/entities/Group"
+            "$ref": "#/backend/entities/Sale"
           },
-          "description": "Stores vehicle group configurations for the user.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier of the user."
-            },
-            {
-              "name": "groupId",
-              "description": "The unique identifier of the group."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/artifacts/hsmjfrota/users/{userId}/frota/{vehicleId}/saleInformation/{saleInformationId}",
-        "definition": {
-          "entityName": "SaleInformation",
-          "schema": {
-            "$ref": "#/backend/entities/SaleInformation"
-          },
-          "description": "Stores sale information for sold vehicles. Authorization is based on the parent vehicle's 'empresa' and user ID.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier of the user."
-            },
-            {
-              "name": "vehicleId",
-              "description": "The unique identifier of the vehicle."
-            },
-            {
-              "name": "saleInformationId",
-              "description": "The unique identifier of the sale information."
-            }
-          ]
+          "description": "Records details of a vehicle sale transaction, owned by the user. Includes denormalized 'ownerUserId' (matching the parent `{userId}` in the path) and 'vehicleId' for authorization independence and linking to the sold vehicle. The `id` field within the document must match the `{saleId}` wildcard."
         }
       }
     ],
-    "reasoning": "The Firestore structure is designed to ensure authorization independence, clarity, and scalability for the FleetWise AI application. We leverage path-based ownership for user-specific data and membership maps with denormalization for collaborative data access. The structure supports QAPs by segregating data based on access needs and using dedicated collections for global roles, eliminating the need for filtering in rules.\n\nAuthorization Independence is achieved by avoiding hierarchical authorization dependencies (`get()` calls in security rules). For example, access to `vehicles` and `maintenanceRecords` is governed by the user ID and the denormalized `empresa` (company) field, enabling atomic operations and simplified security rules. The structure also denormalizes group information. The `vehicles` collection stores the group name (`cliente`). This eliminates the need for rules to fetch the group document to validate access.\n\nQAPs (Rules are not Filters) are supported by:\n\n1.  **Path-based ownership** for private user data (UserProfile), ensuring only the authenticated user can access their profile.\n2.  **Segregation of data** based on company (`empresa` field in `vehicles`) simplifying list operations as each collection has a homogeneous security posture.\n3.  **Denormalization** of authorization data so that rules can perform validation without external reads.\n\nThe design employs explicit state modeling using the `status` field in the `Vehicle` entity, which simplifies querying and ensures data predictability. Semantic naming conventions are used throughout the structure to improve readability and maintainability."
+    "reasoning": "The recommended Firestore structure is designed with a strong emphasis on Authorization Independence, Structural Segregation, and Path-Based Ownership to ensure security, scalability, and debuggability. All user-specific data is rooted under a top-level `/users/{userId}` collection, where `{userId}` directly corresponds to the authenticated user's Firebase Authentication UID (`request.auth.uid`). This strategy fundamentally addresses the user's requirement that 'para um novo usuario, utilizar o sistema dele e não ter acesso um do outro, e ter o seus próprios gerenciamento e clientes'.\n\n**Authorization Independence:** This is achieved by systematically denormalizing the `ownerUserId` into every document within subcollections. For example, `Vehicle`, `VehicleGroup`, `MaintenanceRecord`, and `Sale` entities will explicitly store the `ownerUserId` field. In the case of `MaintenanceRecord`, which is nested under a `Vehicle`, it will also denormalize the `vehicleId`. This eliminates the need for `get()` calls in security rules to check parent documents for authorization context, thereby supporting atomic writes (transactions/batches) and simplifying rule logic. Rules can simply verify `request.auth.uid == resource.data.ownerUserId` (and `resource.data.vehicleId == vehicleId` for nested vehicle data) on the document itself.\n\n**Structural Segregation for QAPs:** By nesting all user-owned data under `/users/{userId}`, each user's data is inherently segregated. This approach directly supports Querying and Aggregating with Permissions (QAPs). When a user performs a `list` operation, for instance, on their vehicles (`/users/{userId}/vehicles`), the query is already scoped to their data. Firebase Security Rules can then efficiently apply `allow list: if request.auth.uid == userId;` without acting as filters, ensuring that only the authenticated user can read their own data, and they are not exposed to documents they don't own. This makes rules simple, predictable, and performant.\n\n**Email/Password Authentication & Verification:** The `UserProfile` document at `/users/{userId}` will store crucial authentication state like `emailVerified`, `verificationCode`, and `verificationCodeExpiresAt`. Cloud Functions or backend services will manage the generation, sending, and verification of these codes/links, and update the `UserProfile` document accordingly, ensuring `emailVerified` is set to `true` upon successful verification. Firestore rules will protect direct unauthorized client modification of these sensitive fields, enforcing that only the owning user can read their profile and only specific, controlled updates (e.g., clearing verification codes, setting `emailVerified`) are allowed via trusted backend services.\n\nOverall, this design provides a clear, secure, and performant data model where authorization logic is primarily handled by explicit path-based ownership and denormalized fields, minimizing complexity in security rules and maximizing debuggability."
   }
 }
