@@ -24,6 +24,9 @@ export interface Vehicle {
   totalMaint?: number;
   kmAtual?: number; // Current KM for alert calculation
   licenciamento?: string; // Licensing due date
+  forSale?: boolean;
+  photos?: string[];
+  fipeValue?: number;
 }
 
 export interface Sale {

@@ -6,9 +6,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import ActiveFleetView from '../fleet/active-fleet-view';
 import SoldFleetView from '../fleet/sold-fleet-view';
 import BiDashboard from '../dashboard/bi-dashboard';
-import { Layers, FileText, PieChart } from 'lucide-react';
+import { Layers, FileText, PieChart, Tag } from 'lucide-react';
 import type { CompanyId, User, Vehicle, Group } from '@/lib/types';
 import { COMPANIES } from '@/lib/types';
+import SalesView from '../fleet/sales-view';
 
 interface MainLayoutProps {
   user: User;
@@ -54,12 +55,15 @@ export default function MainLayout({
         onChangeCompany={onChangeCompany}
       />
       <Tabs defaultValue="active" className="w-full" onValueChange={setActiveTab} value={activeTab}>
-        <TabsList className="grid w-full grid-cols-3 bg-card shadow-sm p-2 mb-6 h-auto">
+        <TabsList className="grid w-full grid-cols-4 bg-card shadow-sm p-2 mb-6 h-auto">
           <TabsTrigger value="active" className="py-3 text-sm md:text-base data-[state=active]:shadow-md">
             <Layers className="mr-2 h-4 w-4" /> Frota Ativa
           </TabsTrigger>
           <TabsTrigger value="sold" className="py-3 text-sm md:text-base data-[state=active]:shadow-md">
-            <FileText className="mr-2 h-4 w-4" /> Vendas
+            <FileText className="mr-2 h-4 w-4" /> Histórico Vendas
+          </TabsTrigger>
+          <TabsTrigger value="sales" className="py-3 text-sm md:text-base data-[state=active]:shadow-md">
+            <Tag className="mr-2 h-4 w-4" /> Vendas
           </TabsTrigger>
           <TabsTrigger value="dashboard" className="py-3 text-sm md:text-base data-[state=active]:shadow-md">
             <PieChart className="mr-2 h-4 w-4" /> Dashboard BI
@@ -87,6 +91,13 @@ export default function MainLayout({
             groups={groups}
             onAddVehicle={onAddVehicle}
             onAddGroup={onAddGroup}
+          />
+        </TabsContent>
+        <TabsContent value="sales">
+          <SalesView
+            vehicles={vehicles}
+            companyId={companyId}
+            onUpdateVehicle={onUpdateVehicle}
           />
         </TabsContent>
         <TabsContent value="dashboard">

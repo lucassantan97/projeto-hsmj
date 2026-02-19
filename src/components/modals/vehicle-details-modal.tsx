@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import type { Vehicle, CompanyId, MaintenanceItem, Group, Sale } from '@/lib/types';
 import { COMPANIES } from '@/lib/types';
 import { formatCurrency, cn, getLicensingInfo } from '@/lib/utils';
-import { Handshake, Pencil, Building, ArrowRightLeft, FileText, Undo2, Edit, CloudUpload, Wrench, Plus, Loader2, BrainCircuit, MessageSquareText, FileBadge, Check } from 'lucide-react';
+import { Handshake, Pencil, Building, ArrowRightLeft, FileText, Undo2, Edit, CloudUpload, Wrench, Plus, Loader2, BrainCircuit, MessageSquareText, FileBadge, Check, Tag, XCircle } from 'lucide-react';
 import { extractMaintenanceDataAction, analyzeMaintenanceHistoryAction } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '../ui/scroll-area';
@@ -115,7 +115,19 @@ export default function VehicleDetailsModal({
 
   const handleSold = (saleInfo: Sale) => {
     if (!vehicle) return;
-    onUpdateVehicle({ ...vehicle, status: 'vendido', vendaInfo: saleInfo });
+    onUpdateVehicle({ ...vehicle, status: 'vendido', vendaInfo: saleInfo, forSale: false });
+  };
+
+  const handleAnnounceSale = () => {
+    if (!vehicle) return;
+    onUpdateVehicle({ ...vehicle, forSale: true });
+    toast({ title: 'Veículo Anunciado', description: `O veículo ${vehicle.placa} agora está listado para venda.` });
+  };
+
+  const handleCancelAnnouncement = () => {
+    if (!vehicle) return;
+    onUpdateVehicle({ ...vehicle, forSale: false });
+    toast({ title: 'Anúncio Removido', description: `O veículo ${vehicle.placa} não está mais listado para venda.` });
   };
   
   const handleMarkAsLicensed = () => {
@@ -318,9 +330,24 @@ export default function VehicleDetailsModal({
                  <div className="flex flex-wrap justify-end mb-6 gap-2">
                     {!isSold && <Button variant="outline" size="sm" onClick={handleMoveCompany}><Building className="h-4 w-4 mr-2"/>Mover para {otherCompany}</Button>}
                     {!isSold && <Button variant="outline" size="sm" onClick={() => setTransferGroupModalOpen(true)}><ArrowRightLeft className="h-4 w-4 mr-2"/>Transferir Grupo</Button>}
-                    {!isSold && <Button variant="outline" size="sm" className="border-orange-500 text-orange-600 hover:bg-orange-50 hover:text-orange-700" onClick={handleSellClick}><Handshake className="h-4 w-4 mr-2"/>Vender</Button>}
                     {!isSold && <Button variant="outline" size="sm" onClick={handleEditClick}><Pencil className="h-4 w-4 mr-2"/>Editar</Button>}
                     
+                    {!isSold && !vehicle.forSale && (
+                        <Button variant="outline" size="sm" className="border-cyan-500 text-cyan-600 hover:bg-cyan-50 hover:text-cyan-700" onClick={handleAnnounceSale}>
+                            <Tag className="h-4 w-4 mr-2"/>Anunciar Venda
+                        </Button>
+                    )}
+                    {!isSold && vehicle.forSale && (
+                        <Button variant="outline" size="sm" className="border-rose-500 text-rose-600 hover:bg-rose-50 hover:text-rose-700" onClick={handleCancelAnnouncement}>
+                            <XCircle className="h-4 w-4 mr-2"/>Remover Anúncio
+                        </Button>
+                    )}
+                    {!isSold && vehicle.forSale && (
+                        <Button variant="outline" size="sm" className="border-orange-500 text-orange-600 hover:bg-orange-50 hover:text-orange-700" onClick={handleSellClick}>
+                            <Handshake className="h-4 w-4 mr-2"/>Registrar Venda
+                        </Button>
+                    )}
+
                     {isSold && <Button variant="outline" size="sm" className="border-red-500 text-red-600 hover:bg-red-50 hover:text-red-700" onClick={handleCancelSale}><Undo2 className="h-4 w-4 mr-2"/>Cancelar Venda</Button>}
                     {isSold && <Button variant="outline" size="sm" className="border-yellow-500 text-yellow-600 hover:bg-yellow-50 hover:text-yellow-700" onClick={handleEditClick}><Edit className="h-4 w-4 mr-2"/>Editar Venda</Button>}
                     
