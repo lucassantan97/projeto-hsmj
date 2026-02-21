@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState } from 'react';
@@ -6,6 +5,7 @@ import { Card, CardContent } from '../ui/card';
 import type { Vehicle, Sale, CompanyId } from '@/lib/types';
 import { formatCurrency } from '@/lib/utils';
 import SellVehicleModal from '../modals/sell-vehicle-modal';
+import ManagePhotosModal from '../modals/manage-photos-modal';
 import Image from 'next/image';
 import { Button } from '../ui/button';
 import { Camera, Handshake, Tag } from 'lucide-react';
@@ -18,7 +18,7 @@ interface SalesViewProps {
   onUpdateVehicle: (vehicle: Vehicle) => void;
 }
 
-const SalesVehicleCard = ({ vehicle, onRegisterSale }: { vehicle: Vehicle, onRegisterSale: (vehicle: Vehicle) => void }) => {
+const SalesVehicleCard = ({ vehicle, onRegisterSale, onManagePhotos }: { vehicle: Vehicle, onRegisterSale: (vehicle: Vehicle) => void, onManagePhotos: (vehicle: Vehicle) => void }) => {
   const companyTheme = COMPANIES[vehicle.empresa].theme.primary;
   
   return (
@@ -49,8 +49,8 @@ const SalesVehicleCard = ({ vehicle, onRegisterSale }: { vehicle: Vehicle, onReg
         </div>
         
         <div className="grid grid-cols-2 gap-2 mt-4">
-            <Button variant="outline" size="sm">
-                <Camera className="mr-2 h-4 w-4" /> Fotos
+            <Button variant="outline" size="sm" onClick={() => onManagePhotos(vehicle)}>
+                <Camera className="mr-2 h-4 w-4" /> Fotos ({vehicle.photos?.length || 0})
             </Button>
             <Button size="sm" onClick={() => onRegisterSale(vehicle)} className={`bg-${companyTheme} hover:bg-${companyTheme}/90`}>
                 <Handshake className="mr-2 h-4 w-4" /> Registrar Venda
@@ -65,6 +65,7 @@ const SalesVehicleCard = ({ vehicle, onRegisterSale }: { vehicle: Vehicle, onReg
 export default function SalesView({ vehicles, companyId, onUpdateVehicle }: SalesViewProps) {
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
   const [isSellModalOpen, setSellModalOpen] = useState(false);
+  const [isPhotoModalOpen, setPhotoModalOpen] = useState(false);
 
   const vehiclesForSale = vehicles.filter(v => v.forSale && v.status === 'ativo');
 
@@ -73,6 +74,11 @@ export default function SalesView({ vehicles, companyId, onUpdateVehicle }: Sale
     setSellModalOpen(true);
   };
   
+  const handleManagePhotosClick = (vehicle: Vehicle) => {
+    setSelectedVehicle(vehicle);
+    setPhotoModalOpen(true);
+  };
+
   const handleSold = (saleInfo: Sale) => {
     if (!selectedVehicle) return;
     onUpdateVehicle({ ...selectedVehicle, status: 'vendido', vendaInfo: saleInfo, forSale: false });
@@ -84,7 +90,12 @@ export default function SalesView({ vehicles, companyId, onUpdateVehicle }: Sale
       {vehiclesForSale.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-20">
           {vehiclesForSale.map(v => (
-            <SalesVehicleCard key={v.id} vehicle={v} onRegisterSale={handleRegisterSaleClick} />
+            <SalesVehicleCard 
+              key={v.id} 
+              vehicle={v} 
+              onRegisterSale={handleRegisterSaleClick} 
+              onManagePhotos={handleManagePhotosClick}
+            />
           ))}
         </div>
       ) : (
@@ -106,6 +117,13 @@ export default function SalesView({ vehicles, companyId, onUpdateVehicle }: Sale
         setIsOpen={setSellModalOpen}
         vehicle={selectedVehicle}
         onSold={handleSold}
+      />
+      
+      <ManagePhotosModal
+        isOpen={isPhotoModalOpen}
+        setIsOpen={setPhotoModalOpen}
+        vehicle={selectedVehicle}
+        onUpdateVehicle={onUpdateVehicle}
       />
     </>
   );
