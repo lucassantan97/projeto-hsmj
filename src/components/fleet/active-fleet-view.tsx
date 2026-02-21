@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Car, Layers, Search, Warehouse } from 'lucide-react';
@@ -85,7 +85,7 @@ export default function ActiveFleetView({
     }
   }
 
-  const findVehicleById = (id: string) => allVehicles.find(v => v.id === id);
+  const findVehicleById = useCallback((id: string) => allVehicles.find(v => v.id === id), [allVehicles]);
 
   return (
     <section>
