@@ -6,6 +6,7 @@ import MainLayout from './layout/main-layout';
 import type { CompanyId, Vehicle, Group, User } from '@/lib/types';
 import { mockVehicles, mockGroups } from '@/lib/mock-data';
 import AiChatWidget from './ai-chat-widget';
+import FullPageLoader from './ui/loader';
 
 const mockUser: User = {
   name: 'Analista',
@@ -13,7 +14,7 @@ const mockUser: User = {
 };
 
 const AppShell = () => {
-  const [authState, setAuthState] = useState<'company-select' | 'app'>('company-select');
+  const [authState, setAuthState] = useState<'loading' | 'company-select' | 'app'>('loading');
   const [user] = useState<User>(mockUser);
   const [selectedCompany, setSelectedCompany] = useState<CompanyId | null>(null);
   
@@ -31,29 +32,33 @@ const AppShell = () => {
     }, 500);
   }, []);
   
-  useEffect(() => {
-    // No auth, go straight to company select
-    setAuthState('company-select');
-    setLoading(false); // No data to load initially
-  }, []);
-
-  const handleCompanySelect = (companyId: CompanyId) => {
+  const handleCompanySelect = useCallback((companyId: CompanyId) => {
     setSelectedCompany(companyId);
     setAuthState('app');
     loadDataForCompany(companyId);
     localStorage.setItem('fleetwise_last_company', companyId);
-  };
+  }, [loadDataForCompany]);
   
-  const handleChangeCompany = () => {
+  useEffect(() => {
+    const lastCompany = localStorage.getItem('fleetwise_last_company') as CompanyId | null;
+    if (lastCompany) {
+      handleCompanySelect(lastCompany);
+    } else {
+      setAuthState('company-select');
+      setLoading(false);
+    }
+  }, [handleCompanySelect]);
+
+  const handleChangeCompany = useCallback(() => {
     setSelectedCompany(null);
     setAuthState('company-select');
     localStorage.removeItem('fleetwise_last_company');
     setVehicles([]);
     setGroups([]);
-  }
+  }, []);
 
   const handleLogout = () => {
-    // Since there's no login, logout will just go back to company select
+    // Since there's no real login, logout will just go back to company select
     handleChangeCompany();
   };
   
@@ -85,16 +90,18 @@ const AppShell = () => {
 
   const renderContent = () => {
     switch (authState) {
+      case 'loading':
+        return <FullPageLoader />;
       case 'company-select':
         return (
           <CompanySelector
             user={user}
             onSelectCompany={handleCompanySelect}
-            onLogout={() => { /* No real logout, but keep prop for component */ }}
+            onLogout={handleLogout}
           />
         );
       case 'app':
-        if (!selectedCompany) return null;
+        if (!selectedCompany) return <FullPageLoader />;
         return (
           <MainLayout
             user={user}
@@ -112,7 +119,7 @@ const AppShell = () => {
           />
         );
       default:
-        return null;
+        return <FullPageLoader />;
     }
   };
 

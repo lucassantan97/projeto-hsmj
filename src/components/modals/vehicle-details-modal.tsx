@@ -296,11 +296,15 @@ export default function VehicleDetailsModal({
 
   const newMaintenanceTotal = useMemo(() => newMaintItems.reduce((sum, item) => sum + item.valor, 0), [newMaintItems]);
 
-  if (!vehicle) return null;
+  const licensingInfo = useMemo(() => {
+    if (!vehicle) return null;
+    return getLicensingInfo(vehicle.placa);
+  }, [vehicle]);
+
+  if (!vehicle || !licensingInfo) return null;
   const isSold = vehicle.status === 'vendido';
   const companyTheme = COMPANIES[companyId].theme.primary;
 
-  const licensingInfo = getLicensingInfo(vehicle.placa);
   const getStatusColor = () => {
     switch (licensingInfo.status) {
         case 'vencido': return 'text-red-500';
