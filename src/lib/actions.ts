@@ -2,9 +2,9 @@
 
 import { generateSalesAd } from '@/ai/flows/generate-sales-ad';
 import { maintenanceReceiptDataExtraction } from '@/ai/flows/maintenance-receipt-data-extraction';
+import { analyzeMaintenanceHistory, MaintenanceAnalysisInputSchema } from '@/ai/flows/analyze-maintenance-history';
 import { z } from 'zod';
 import type { Vehicle } from './types';
-import { ai } from '@/ai/genkit';
 
 export async function generateSalesAdAction(vehicle: Vehicle) {
   try {
@@ -36,42 +36,10 @@ export async function extractMaintenanceDataAction(photoDataUri: string) {
     }
 }
 
-
-const MaintenanceAnalysisInputSchema = z.object({
-  vehicleModel: z.string(),
-  maintenances: z.array(z.object({
-    data: z.string(),
-    km: z.number(),
-    total: z.number(),
-    items: z.array(z.object({ descricao: z.string(), valor: z.number() })),
-  })),
-});
-
-const MaintenanceAnalysisOutputSchema = z.object({
-  analysis: z.string().describe("A brief, insightful analysis of the vehicle's maintenance history, pointing out patterns, potential future issues, and overall health. Use Markdown for formatting."),
-});
-
-const analysisPrompt = ai.definePrompt({
-  name: 'maintenanceAnalysisPrompt',
-  input: { schema: MaintenanceAnalysisInputSchema },
-  output: { schema: MaintenanceAnalysisOutputSchema },
-  prompt: `You are a specialist mechanic and data analyst. Based on the maintenance history of a {{vehicleModel}}, provide a concise analysis.
-
-- Point out any recurring issues.
-- Suggest potential future maintenance needs based on the history and mileage.
-- Give an overall assessment of the vehicle's maintenance status.
-- Be brief and use bullet points (Markdown).
-- Write in Portuguese.
-
-History:
-{{jsonStringify maintenances}}
-`,
-});
-
 export async function analyzeMaintenanceHistoryAction(input: z.infer<typeof MaintenanceAnalysisInputSchema>) {
     try {
-        const { output } = await analysisPrompt(input);
-        return { success: true, analysis: output?.analysis };
+        const result = await analyzeMaintenanceHistory(input);
+        return { success: true, analysis: result.analysis };
     } catch (error) {
         console.error('Error analyzing maintenance history:', error);
         return { success: false, error: 'Failed to analyze history.' };
