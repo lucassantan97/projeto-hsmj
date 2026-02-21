@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm, SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -13,6 +13,8 @@ import Link from 'next/link';
 import { Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { HsLogo } from '@/components/icons/hs-logo';
+import { useAuth, useUser } from '@/firebase';
+import { signInWithEmailAndPassword } from 'firebase/auth';
 
 const loginSchema = z.object({
   email: z.string().email('E-mail inválido'),
@@ -24,6 +26,14 @@ type LoginFormData = z.infer<typeof loginSchema>;
 export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+  const auth = useAuth();
+  const { user } = useUser();
+
+  useEffect(() => {
+    if (user) {
+      router.push('/');
+    }
+  }, [user, router]);
   
   const form = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
@@ -35,15 +45,22 @@ export default function LoginPage() {
 
   const onSubmit: SubmitHandler<LoginFormData> = async (data) => {
     setError(null);
-    // This is where the login logic will go.
-    console.log(data);
-    // In a real app, you would now call your sign-in action
-    // const result = await signInAction(data);
-    // if (!result.success) {
-    //   setError(result.error);
-    // } else {
-    //   router.push('/');
-    // }
+    try {
+      await signInWithEmailAndPassword(auth, data.email, data.password);
+      router.push('/');
+    } catch (e: any) {
+      switch (e.code) {
+        case 'auth/user-not-found':
+        case 'auth/wrong-password':
+        case 'auth/invalid-credential':
+          setError('E-mail ou senha inválidos.');
+          break;
+        default:
+          setError('Ocorreu um erro ao fazer login.');
+          console.error(e);
+          break;
+      }
+    }
   };
 
   return (
