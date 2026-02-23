@@ -52,7 +52,7 @@ const AppShell = () => {
       }
       return a.name.localeCompare(b.name);
     });
-  }, [groupsData]) || [];
+  }, [groupsData]);
 
   const handleCompanySelect = useCallback((companyId: CompanyId) => {
     setSelectedCompany(companyId);
