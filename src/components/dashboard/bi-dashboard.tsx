@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 import KpiCard from './kpi-card';
 import FinanceChart from './finance-chart';
 import SalesChart from './sales-chart';
@@ -11,12 +13,15 @@ import { FileSpreadsheet, FileText, Filter } from 'lucide-react';
 import type { Vehicle } from '@/lib/types';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
 import VehicleModelsChart from './vehicle-models-chart';
+import { useToast } from '@/hooks/use-toast';
+import { formatCurrency } from '@/lib/utils';
 
 interface BiDashboardProps {
   vehicles: Vehicle[];
 }
 
 export default function BiDashboard({ vehicles }: BiDashboardProps) {
+  const { toast } = useToast();
   const currentYear = new Date().getFullYear();
   const [year, setYear] = useState(currentYear.toString());
   const [month, setMonth] = useState('all');
@@ -71,6 +76,36 @@ export default function BiDashboard({ vehicles }: BiDashboardProps) {
     acc + (v.maintenances?.reduce((mAcc, m) => mAcc + m.total, 0) || 0), 0
   );
 
+  const generateDashboardPDF = () => {
+    const doc = new jsPDF();
+    const monthName = month === 'all' ? 'Todo o Ano' : new Date(2000, parseInt(month), 1).toLocaleString('pt-BR', { month: 'long' });
+    const period = `${monthName} de ${year}`;
+    
+    doc.setFontSize(18);
+    doc.text(`Relatório BI - ${period}`, 14, 22);
+    doc.setFontSize(12);
+    
+    const kpiData = [
+      ['Patrimônio Atual (Total da Frota)', formatCurrency(totalAssets)],
+      [`Receita de Vendas (${period})`, `${formatCurrency(totalRevenue)} (${salesCount} vendidos)`],
+      [`Custo de Manutenção (${period})`, formatCurrency(totalMaintenance)],
+    ];
+
+    (doc as any).autoTable({
+      startY: 30,
+      head: [['Indicador', 'Valor']],
+      body: kpiData,
+      theme: 'striped',
+      headStyles: { fillColor: [30, 58, 138] }, // Primary color
+    });
+
+    doc.setFontSize(10);
+    doc.setTextColor(150);
+    doc.text("Relatório gerado pelo sistema FleetWise AI.", 14, (doc as any).lastAutoTable.finalY + 20);
+
+    doc.save(`Relatorio_BI_${year}_${monthName.replace(' ', '_')}.pdf`);
+  };
+
   return (
     <section className="space-y-6">
       <Card className="border-l-4 border-foreground">
@@ -100,10 +135,10 @@ export default function BiDashboard({ vehicles }: BiDashboardProps) {
                     </SelectContent>
                 </Select>
                 <div className="flex gap-2">
-                    <Button variant="outline" className="bg-green-100 text-green-700 hover:bg-green-200 border-green-200 hover:text-green-800">
+                    <Button variant="outline" className="bg-green-100 text-green-700 hover:bg-green-200 border-green-200 hover:text-green-800" onClick={() => toast({ title: 'Função em desenvolvimento', description: 'A exportação para Excel será implementada em breve.' })}>
                         <FileSpreadsheet className="h-4 w-4" />
                     </Button>
-                     <Button variant="outline" className="bg-red-100 text-red-700 hover:bg-red-200 border-red-200 hover:text-red-800">
+                     <Button variant="outline" className="bg-red-100 text-red-700 hover:bg-red-200 border-red-200 hover:text-red-800" onClick={generateDashboardPDF}>
                         <FileText className="h-4 w-4" />
                     </Button>
                 </div>
