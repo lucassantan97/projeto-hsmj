@@ -38,15 +38,14 @@ export async function POST(request: NextRequest) {
     }
     const vehicleData = vehicleDoc.data() as Vehicle;
 
-    // 4. Create new maintenance record
+    // 4. Create new maintenance record from AI result
     const newMaintenanceRecord: Maintenance = {
       id: `maint-${vehicleId}-${Date.now()}`,
       data: extractionResult.date,
       km: extractionResult.km,
       fornecedor: extractionResult.fornecedor,
-      // The current AI model only extracts item descriptions, not individual values.
-      // We are setting individual values to 0 and using the extracted total.
-      items: extractionResult.items.map(itemDesc => ({ descricao: itemDesc, valor: 0 })),
+      // The AI now extracts item descriptions and values
+      items: extractionResult.items,
       total: extractionResult.total,
     };
 

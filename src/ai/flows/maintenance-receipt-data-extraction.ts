@@ -20,11 +20,16 @@ const MaintenanceReceiptDataExtractionInputSchema = z.object({
 });
 export type MaintenanceReceiptDataExtractionInput = z.infer<typeof MaintenanceReceiptDataExtractionInputSchema>;
 
+const MaintenanceItemSchema = z.object({
+    descricao: z.string().describe('The description of the maintenance item or service.'),
+    valor: z.number().describe('The cost of the individual item or service.'),
+});
+
 const MaintenanceReceiptDataExtractionOutputSchema = z.object({
   date: z.string().describe('The date of the maintenance in YYYY-MM-DD format.'),
   km: z.number().describe('The current KM of the vehicle at the time of maintenance.'),
   fornecedor: z.string().describe('The name of the maintenance provider.'),
-  items: z.array(z.string()).describe('An array of maintenance item descriptions.'),
+  items: z.array(MaintenanceItemSchema).describe('An array of maintenance items, each with a description and a value.'),
   total: z.number().describe('The total cost of the maintenance.'),
 });
 export type MaintenanceReceiptDataExtractionOutput = z.infer<typeof MaintenanceReceiptDataExtractionOutputSchema>;
@@ -43,8 +48,8 @@ const prompt = ai.definePrompt({
   - Date of maintenance (YYYY-MM-DD)
   - Current KM of the vehicle
   - Name of the maintenance provider
-  - A list of maintenance items
-  - Total cost of maintenance
+  - A list of maintenance items, with a description (descricao) and value (valor) for each.
+  - Total cost of maintenance (total)
 
   Return the information as a JSON object.
   Here is the receipt:
@@ -61,6 +66,9 @@ const maintenanceReceiptDataExtractionFlow = ai.defineFlow(
   },
   async input => {
     const {output} = await prompt(input);
-    return output!;
+    if (!output) {
+      throw new Error('AI prompt failed to produce output.');
+    }
+    return output;
   }
 );
