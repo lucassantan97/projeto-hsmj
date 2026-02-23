@@ -9,7 +9,7 @@ import { Bot, MessageCircle, Send, X, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { chatAction } from '@/lib/actions';
-import type { Vehicle } from '@/lib/types';
+import type { Vehicle, Group } from '@/lib/types';
 
 interface Message {
   type: 'user' | 'ai';
@@ -18,9 +18,10 @@ interface Message {
 
 interface AiChatWidgetProps {
   vehicles: Vehicle[];
+  groups: Group[];
 }
 
-export default function AiChatWidget({ vehicles }: AiChatWidgetProps) {
+export default function AiChatWidget({ vehicles, groups }: AiChatWidgetProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
     { type: 'ai', text: 'Olá! Sou a IA integrada. Como posso ajudar a gerir a frota hoje?' },
@@ -38,7 +39,7 @@ export default function AiChatWidget({ vehicles }: AiChatWidgetProps) {
     setInput('');
     setIsLoading(true);
 
-    const result = await chatAction({ question: currentInput, vehicles });
+    const result = await chatAction({ question: currentInput, vehicles, groups });
 
     if (result.success && result.answer) {
       const aiResponse: Message = { type: 'ai', text: result.answer };

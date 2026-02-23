@@ -54,9 +54,16 @@ const VehicleSchema = z.object({
   fipeValue: z.number().optional(),
 });
 
+const GroupSchema = z.object({
+    id: z.string(),
+    name: z.string(),
+    company: z.enum(['HS', 'MJ']),
+});
+
 export const ChatInputSchema = z.object({
   question: z.string().describe("The user's question about the vehicle fleet."),
   vehicles: z.array(VehicleSchema).describe('The list of vehicles in the fleet.'),
+  groups: z.array(GroupSchema).describe('The list of all available vehicle groups.'),
 });
 export type ChatInput = z.infer<typeof ChatInputSchema>;
 
@@ -74,7 +81,8 @@ const chatPrompt = ai.definePrompt({
     Be concise and helpful. Respond in Portuguese.
 
     Fleet Data (JSON format):
-    {{jsonStringify vehicles}}
+    Vehicles: {{jsonStringify vehicles}}
+    Groups: {{jsonStringify groups}}
 
     User's Question:
     "{{question}}"
