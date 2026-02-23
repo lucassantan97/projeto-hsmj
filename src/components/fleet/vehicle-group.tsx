@@ -19,8 +19,8 @@ interface VehicleGroupProps {
   allVehicles: Vehicle[];
   groups: Group[];
   onUpdateVehicle: (vehicle: Vehicle) => void;
-  onAddVehicle: (vehicleData: Omit<Vehicle, 'id'>) => void;
-  onAddGroup: (group: Omit<Group, 'id'>) => void;
+  onAddVehicle: (vehicleData: Omit<Vehicle, 'id' | 'ownerUserId'>) => void;
+  onAddGroup: (group: Omit<Group, 'id' | 'ownerUserId' | 'order'>) => void;
 }
 
 export default function VehicleGroup({ 

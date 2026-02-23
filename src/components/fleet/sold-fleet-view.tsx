@@ -13,8 +13,8 @@ interface SoldFleetViewProps {
   companyId: CompanyId;
   onUpdateVehicle: (vehicle: Vehicle) => void;
   groups: Group[];
-  onAddVehicle: (vehicleData: Omit<Vehicle, 'id'>) => void;
-  onAddGroup: (group: Omit<Group, 'id'>) => void;
+  onAddVehicle: (vehicleData: Omit<Vehicle, 'id' | 'ownerUserId'>) => void;
+  onAddGroup: (group: Omit<Group, 'id' | 'ownerUserId' | 'order'>) => void;
 }
 
 export default function SoldFleetView({ vehicles, companyId, onUpdateVehicle, groups, onAddVehicle, onAddGroup }: SoldFleetViewProps) {

@@ -17,7 +17,7 @@ interface TransferGroupModalProps {
   groups: Group[];
   companyId: CompanyId;
   onTransfer: (newGroupName: string) => void;
-  onAddGroup: (group: Omit<Group, 'id'>) => void;
+  onAddGroup: (group: Omit<Group, 'id' | 'ownerUserId' | 'order'>) => void;
   currentVehicle: Vehicle | null;
 }
 

@@ -28,8 +28,8 @@ interface VehicleDetailsModalProps {
   companyId: CompanyId;
   groups: Group[];
   onUpdateVehicle: (vehicle: Vehicle) => void;
-  onAddVehicle: (vehicleData: Omit<Vehicle, 'id'>) => void;
-  onAddGroup: (group: Omit<Group, 'id'>) => void;
+  onAddVehicle: (vehicleData: Omit<Vehicle, 'id' | 'ownerUserId'>) => void;
+  onAddGroup: (group: Omit<Group, 'id' | 'ownerUserId' | 'order'>) => void;
 }
 
 export default function VehicleDetailsModal({ 
@@ -105,7 +105,7 @@ export default function VehicleDetailsModal({
     toast({ title: 'Venda Cancelada', description: `O veículo ${vehicle.placa} está ativo novamente.` });
   };
 
-  const handleSaveVehicle = (vehicleData: Omit<Vehicle, 'id'>) => {
+  const handleSaveVehicle = (vehicleData: Omit<Vehicle, 'id' | 'ownerUserId'>) => {
     if(vehicle) {
       onUpdateVehicle({ ...vehicle, ...vehicleData });
     } else {
