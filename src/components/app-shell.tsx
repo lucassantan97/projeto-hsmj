@@ -1,10 +1,12 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { collection, doc, query, where, writeBatch, getDocs } from 'firebase/firestore';
+import { setDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import CompanySelector from './auth/company-selector';
 import MainLayout from './layout/main-layout';
 import type { CompanyId, Vehicle, Group, User } from '@/lib/types';
-import { mockVehicles, mockGroups } from '@/lib/mock-data';
 import AiChatWidget from './ai-chat-widget';
 import FullPageLoader from './ui/loader';
 
@@ -15,29 +17,37 @@ const mockUser: User = {
 
 const AppShell = () => {
   const [authState, setAuthState] = useState<'loading' | 'company-select' | 'app'>('loading');
-  const [user] = useState<User>(mockUser);
+  const [userState] = useState<User>(mockUser);
   const [selectedCompany, setSelectedCompany] = useState<CompanyId | null>(null);
   
-  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
-  const [groups, setGroups] = useState<Group[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { user } = useUser();
+  const firestore = useFirestore();
 
-  const loadDataForCompany = useCallback((companyId: CompanyId) => {
-    setLoading(true);
-    // Simulate fetching data
-    setTimeout(() => {
-      setVehicles(mockVehicles.filter(v => v.empresa === companyId));
-      setGroups(mockGroups.filter(g => g.company === companyId));
-      setLoading(false);
-    }, 500);
-  }, []);
+  const vehiclesQuery = useMemoFirebase(() => {
+    if (!user || !selectedCompany) return null;
+    return query(
+      collection(firestore, 'users', user.uid, 'vehicles'),
+      where('empresa', '==', selectedCompany)
+    );
+  }, [user, selectedCompany, firestore]);
+  const { data: vehiclesData, isLoading: vehiclesLoading } = useCollection<Vehicle>(vehiclesQuery);
+  const vehicles = vehiclesData || [];
   
+  const groupsQuery = useMemoFirebase(() => {
+    if (!user || !selectedCompany) return null;
+    return query(
+      collection(firestore, 'users', user.uid, 'vehicleGroups'),
+      where('company', '==', selectedCompany)
+    );
+  }, [user, selectedCompany, firestore]);
+  const { data: groupsData, isLoading: groupsLoading } = useCollection<Group>(groupsQuery);
+  const groups = groupsData || [];
+
   const handleCompanySelect = useCallback((companyId: CompanyId) => {
     setSelectedCompany(companyId);
     setAuthState('app');
-    loadDataForCompany(companyId);
     localStorage.setItem('fleetwise_last_company', companyId);
-  }, [loadDataForCompany]);
+  }, []);
   
   useEffect(() => {
     const lastCompany = localStorage.getItem('fleetwise_last_company') as CompanyId | null;
@@ -45,7 +55,6 @@ const AppShell = () => {
       handleCompanySelect(lastCompany);
     } else {
       setAuthState('company-select');
-      setLoading(false);
     }
   }, [handleCompanySelect]);
 
@@ -53,39 +62,70 @@ const AppShell = () => {
     setSelectedCompany(null);
     setAuthState('company-select');
     localStorage.removeItem('fleetwise_last_company');
-    setVehicles([]);
-    setGroups([]);
   }, []);
 
   const handleLogout = () => {
-    // Since there's no real login, logout will just go back to company select
     handleChangeCompany();
   };
   
   const updateVehicle = (updatedVehicle: Vehicle) => {
-    setVehicles(prev => prev.map(v => v.id === updatedVehicle.id ? updatedVehicle : v));
+    if (!user) return;
+    const vehicleRef = doc(firestore, 'users', user.uid, 'vehicles', updatedVehicle.id);
+    setDocumentNonBlocking(vehicleRef, updatedVehicle, { merge: true });
   }
 
   const addVehicle = (newVehicle: Omit<Vehicle, 'id'>) => {
-    const vehicleWithId = { ...newVehicle, id: Date.now().toString() };
-    setVehicles(prev => [...prev, vehicleWithId]);
+    if (!user) return;
+    const newDocRef = doc(collection(firestore, 'users', user.uid, 'vehicles'));
+    const vehicleWithId: Vehicle = {
+      ...newVehicle,
+      id: newDocRef.id,
+      ownerUserId: user.uid,
+    };
+    setDocumentNonBlocking(newDocRef, vehicleWithId, {});
   };
 
   const addGroup = (newGroup: Omit<Group, 'id'>) => {
-    const groupWithId = { ...newGroup, id: Date.now().toString() };
-    setGroups(prev => [...prev, groupWithId]);
+    if(!user) return;
+    const newDocRef = doc(collection(firestore, 'users', user.uid, 'vehicleGroups'));
+    const groupWithId: Group = {
+      ...newGroup,
+      id: newDocRef.id,
+      ownerUserId: user.uid,
+    };
+    setDocumentNonBlocking(newDocRef, groupWithId, {});
   }
 
-  const updateGroup = (id: string, newName: string) => {
-    setGroups(prev => prev.map(g => g.id === id ? {...g, name: newName} : g));
+  const updateGroup = async (id: string, newName: string) => {
+    if (!user || !selectedCompany) return;
+    
     const oldName = groups.find(g => g.id === id)?.name;
-    if (oldName) {
-      setVehicles(prev => prev.map(v => v.cliente === oldName ? {...v, cliente: newName} : v));
+
+    // 1. Update the group document
+    const groupRef = doc(firestore, 'users', user.uid, 'vehicleGroups', id);
+    setDocumentNonBlocking(groupRef, { name: newName }, { merge: true });
+
+    // 2. Update all vehicles using this group
+    if (oldName && oldName !== newName) {
+      const vehiclesToUpdateQuery = query(
+        collection(firestore, 'users', user.uid, 'vehicles'),
+        where('cliente', '==', oldName),
+        where('empresa', '==', selectedCompany)
+      );
+      
+      const querySnapshot = await getDocs(vehiclesToUpdateQuery);
+      const batch = writeBatch(firestore);
+      querySnapshot.forEach((document) => {
+        batch.update(document.ref, { cliente: newName });
+      });
+      await batch.commit();
     }
   }
 
   const deleteGroup = (id: string) => {
-    setGroups(prev => prev.filter(g => g.id !== id));
+    if (!user) return;
+    const groupRef = doc(firestore, 'users', user.uid, 'vehicleGroups', id);
+    deleteDocumentNonBlocking(groupRef);
   }
 
   const renderContent = () => {
@@ -95,7 +135,7 @@ const AppShell = () => {
       case 'company-select':
         return (
           <CompanySelector
-            user={user}
+            user={userState}
             onSelectCompany={handleCompanySelect}
             onLogout={handleLogout}
           />
@@ -104,11 +144,11 @@ const AppShell = () => {
         if (!selectedCompany) return <FullPageLoader />;
         return (
           <MainLayout
-            user={user}
+            user={userState}
             companyId={selectedCompany}
             vehicles={vehicles}
             groups={groups}
-            loading={loading}
+            loading={vehiclesLoading || groupsLoading}
             onLogout={handleLogout}
             onChangeCompany={handleChangeCompany}
             onUpdateVehicle={updateVehicle}

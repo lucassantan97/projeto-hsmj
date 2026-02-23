@@ -8,6 +8,7 @@ export interface User {
 
 export interface Vehicle {
   id: string;
+  ownerUserId: string;
   placa: string;
   modelo: string;
   cliente: string; // Group
@@ -52,6 +53,7 @@ export interface MaintenanceItem {
 
 export interface Group {
     id: string;
+    ownerUserId: string;
     name: string;
     company: CompanyId;
 }
