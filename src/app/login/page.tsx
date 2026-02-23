@@ -73,7 +73,7 @@ export default function LoginPage() {
                 <HsLogo />
             </div>
             <h1 className="text-3xl font-headline font-bold text-foreground">
-              Acesso ao Sistema
+              <span>Acesso ao Sistema</span>
             </h1>
             <p className="text-muted-foreground mt-2">
               Use as credenciais para entrar.

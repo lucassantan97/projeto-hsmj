@@ -32,7 +32,7 @@ export default function CompanySelector({ user, onSelectCompany, onLogout }: Com
               <HsLogo />
             </div>
             <h3 className="text-2xl font-bold font-headline text-foreground">
-              HS Locadora
+              <span>HS Locadora</span>
             </h3>
             <p className="text-sm text-muted-foreground mt-1 font-code bg-muted px-2 rounded">
               CNPJ: 10.606.395/0001-24
