@@ -126,7 +126,7 @@ const AppShell = () => {
   return (
     <div style={{ backgroundColor: 'hsl(var(--background))' }} className="min-h-screen">
       {renderContent()}
-      {authState === 'app' && <AiChatWidget />}
+      {authState === 'app' && <AiChatWidget vehicles={vehicles} />}
     </div>
   );
 };

@@ -5,16 +5,22 @@ import { Button } from './ui/button';
 import { Card, CardContent, CardFooter, CardHeader } from './ui/card';
 import { Input } from './ui/input';
 import { ScrollArea } from './ui/scroll-area';
-import { Bot, MessageCircle, Send, X, ExternalLink, Loader2 } from 'lucide-react';
+import { Bot, MessageCircle, Send, X, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
+import { chatAction } from '@/lib/actions';
+import type { Vehicle } from '@/lib/types';
 
 interface Message {
   type: 'user' | 'ai';
   text: string;
 }
 
-export default function AiChatWidget() {
+interface AiChatWidgetProps {
+  vehicles: Vehicle[];
+}
+
+export default function AiChatWidget({ vehicles }: AiChatWidgetProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
     { type: 'ai', text: 'Olá! Sou a IA integrada. Como posso ajudar a gerir a frota hoje?' },
@@ -28,26 +34,22 @@ export default function AiChatWidget() {
 
     const userMessage: Message = { type: 'user', text: input };
     setMessages((prev) => [...prev, userMessage]);
+    const currentInput = input;
     setInput('');
     setIsLoading(true);
 
-    // Simulate AI response
-    setTimeout(() => {
-        const aiResponse: Message = { type: 'ai', text: `Recebi sua mensagem: "${userMessage.text}". No momento, estou em modo de demonstração.` };
-        setMessages((prev) => [...prev, aiResponse]);
-        setIsLoading(false);
-    }, 1500);
+    const result = await chatAction({ question: currentInput, vehicles });
+
+    if (result.success && result.answer) {
+      const aiResponse: Message = { type: 'ai', text: result.answer };
+      setMessages((prev) => [...prev, aiResponse]);
+    } else {
+      toast({ variant: 'destructive', title: 'Erro de IA', description: result.error });
+      const errorResponse: Message = { type: 'ai', text: 'Desculpe, não consegui processar sua solicitação.' };
+      setMessages((prev) => [...prev, errorResponse]);
+    }
+    setIsLoading(false);
   };
-  
-  // In a real app, you would call your server action here
-  // const result = await callGeminiAction(input);
-  // if (result.success) {
-  //   const aiResponse: Message = { type: 'ai', text: result.response };
-  //    setMessages((prev) => [...prev, aiResponse]);
-  // } else {
-  //    toast({ variant: 'destructive', title: 'Erro de IA', description: result.error });
-  // }
-  // setIsLoading(false);
 
 
   return (
