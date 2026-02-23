@@ -56,6 +56,7 @@ export interface Group {
     ownerUserId: string;
     name: string;
     company: CompanyId;
+    order?: number;
 }
 
 export interface MaintenanceAlert {

@@ -20,9 +20,9 @@ interface MainLayoutProps {
   onLogout: () => void;
   onChangeCompany: () => void;
   onUpdateVehicle: (vehicle: Vehicle) => void;
-  onAddVehicle: (vehicle: Omit<Vehicle, 'id'>) => void;
-  onAddGroup: (group: Omit<Group, 'id'>) => void;
-  onUpdateGroup: (id: string, newName: string) => void;
+  onAddVehicle: (vehicle: Omit<Vehicle, 'id' | 'ownerUserId'>) => void;
+  onAddGroup: (group: Omit<Group, 'id' | 'ownerUserId' | 'order'>) => void;
+  onUpdateGroup: (id: string, data: Partial<Group>) => void;
   onDeleteGroup: (id: string) => void;
 }
 

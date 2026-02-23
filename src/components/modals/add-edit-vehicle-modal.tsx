@@ -34,7 +34,7 @@ interface AddEditVehicleModalProps {
   allVehicles: Vehicle[];
   groups: Group[];
   companyId: CompanyId;
-  onSave: (data: Omit<Vehicle, 'id' | 'status' | 'empresa'> & {empresa: CompanyId; status: 'ativo'}) => void;
+  onSave: (data: Omit<Vehicle, 'id' | 'status' | 'empresa' | 'ownerUserId'> & {empresa: CompanyId; status: 'ativo'}) => void;
 }
 
 export default function AddEditVehicleModal({

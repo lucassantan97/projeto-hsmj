@@ -22,9 +22,9 @@ interface ActiveFleetViewProps {
   loading: boolean;
   companyId: CompanyId;
   onUpdateVehicle: (vehicle: Vehicle) => void;
-  onAddVehicle: (vehicle: Omit<Vehicle, 'id'>) => void;
-  onAddGroup: (group: Omit<Group, 'id'>) => void;
-  onUpdateGroup: (id: string, newName: string) => void;
+  onAddVehicle: (vehicle: Omit<Vehicle, 'id' | 'ownerUserId'>) => void;
+  onAddGroup: (group: Omit<Group, 'id' | 'ownerUserId' | 'order'>) => void;
+  onUpdateGroup: (id: string, data: Partial<Group>) => void;
   onDeleteGroup: (id: string) => void;
 }
 
@@ -67,15 +67,27 @@ export default function ActiveFleetView({
   const vehicleGroups = useMemo(() => {
     const activeVehicles = filteredVehicles.filter(v => v.status === 'ativo');
     const groupNamesFromVehicles = [...new Set(activeVehicles.map((v) => v.cliente))];
+    
+    // Use the sorted groups from props, which respects the manual order
     const groupNamesFromConfig = groups.map(g => g.name);
-    const allGroupNames = [...new Set([...groupNamesFromVehicles, ...groupNamesFromConfig])].sort();
+
+    const allGroupNames = [...new Set([...groupNamesFromConfig, ...groupNamesFromVehicles])];
+    
+    // Create a map for quick lookup of the group's original order
+    const groupOrderMap = new Map(groups.map(g => [g.name, g.order ?? Infinity]));
 
     return allGroupNames.map(groupName => ({
         name: groupName,
         vehicles: activeVehicles
             .filter(v => v.cliente === groupName)
             .sort((a,b) => a.placa.localeCompare(b.placa)),
-    }));
+        order: groupOrderMap.get(groupName) ?? Infinity,
+    })).sort((a, b) => {
+        if (a.order !== b.order) {
+            return a.order - b.order;
+        }
+        return a.name.localeCompare(b.name);
+    });
   }, [filteredVehicles, groups]);
 
   const handleVehicleDrop = (vehicleId: string, newGroupName: string) => {
@@ -156,7 +168,7 @@ export default function ActiveFleetView({
       
       {!loading && vehicleGroups.length > 0 && (
         <div className="space-y-4 pb-20">
-          {vehicleGroups.map((group, index) => (
+          {vehicleGroups.map((group) => (
             <VehicleGroup 
               key={group.name} 
               group={group} 
@@ -183,7 +195,7 @@ export default function ActiveFleetView({
             if(editingVehicle) {
                 onUpdateVehicle({...editingVehicle, ...vehicleData});
             } else {
-                onAddVehicle(vehicleData);
+                onAddVehicle(vehicleData as Omit<Vehicle, 'id' | 'ownerUserId'>);
             }
         }}
       />

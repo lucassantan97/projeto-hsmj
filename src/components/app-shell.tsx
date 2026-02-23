@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, doc, query, where, writeBatch, getDocs } from 'firebase/firestore';
 import { setDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
@@ -41,7 +41,18 @@ const AppShell = () => {
     );
   }, [user, selectedCompany, firestore]);
   const { data: groupsData, isLoading: groupsLoading } = useCollection<Group>(groupsQuery);
-  const groups = groupsData || [];
+  
+  const groups = useMemo(() => {
+    if (!groupsData) return [];
+    return [...groupsData].sort((a, b) => {
+      const orderA = a.order ?? Number.MAX_SAFE_INTEGER;
+      const orderB = b.order ?? Number.MAX_SAFE_INTEGER;
+      if (orderA !== orderB) {
+        return orderA - orderB;
+      }
+      return a.name.localeCompare(b.name);
+    });
+  }, [groupsData]) || [];
 
   const handleCompanySelect = useCallback((companyId: CompanyId) => {
     setSelectedCompany(companyId);
@@ -74,7 +85,7 @@ const AppShell = () => {
     setDocumentNonBlocking(vehicleRef, updatedVehicle, { merge: true });
   }
 
-  const addVehicle = (newVehicle: Omit<Vehicle, 'id'>) => {
+  const addVehicle = (newVehicle: Omit<Vehicle, 'id' | 'ownerUserId'>) => {
     if (!user) return;
     const newDocRef = doc(collection(firestore, 'users', user.uid, 'vehicles'));
     const vehicleWithId: Vehicle = {
@@ -85,40 +96,41 @@ const AppShell = () => {
     setDocumentNonBlocking(newDocRef, vehicleWithId, {});
   };
 
-  const addGroup = (newGroup: Omit<Group, 'id'>) => {
+  const addGroup = (newGroup: Omit<Group, 'id' | 'ownerUserId' | 'order'>) => {
     if(!user) return;
     const newDocRef = doc(collection(firestore, 'users', user.uid, 'vehicleGroups'));
+    const maxOrder = groups.reduce((max, g) => Math.max(max, g.order ?? 0), 0);
     const groupWithId: Group = {
       ...newGroup,
       id: newDocRef.id,
       ownerUserId: user.uid,
+      order: maxOrder + 1,
     };
     setDocumentNonBlocking(newDocRef, groupWithId, {});
   }
 
-  const updateGroup = async (id: string, newName: string) => {
+  const updateGroup = async (id: string, data: Partial<Group>) => {
     if (!user || !selectedCompany) return;
     
-    const oldName = groups.find(g => g.id === id)?.name;
-
-    // 1. Update the group document
     const groupRef = doc(firestore, 'users', user.uid, 'vehicleGroups', id);
-    setDocumentNonBlocking(groupRef, { name: newName }, { merge: true });
+    setDocumentNonBlocking(groupRef, data, { merge: true });
 
-    // 2. Update all vehicles using this group
-    if (oldName && oldName !== newName) {
-      const vehiclesToUpdateQuery = query(
-        collection(firestore, 'users', user.uid, 'vehicles'),
-        where('cliente', '==', oldName),
-        where('empresa', '==', selectedCompany)
-      );
-      
-      const querySnapshot = await getDocs(vehiclesToUpdateQuery);
-      const batch = writeBatch(firestore);
-      querySnapshot.forEach((document) => {
-        batch.update(document.ref, { cliente: newName });
-      });
-      await batch.commit();
+    if (data.name && typeof data.name === 'string') {
+      const oldName = groups.find(g => g.id === id)?.name;
+      if (oldName && oldName !== data.name) {
+        const vehiclesToUpdateQuery = query(
+          collection(firestore, 'users', user.uid, 'vehicles'),
+          where('cliente', '==', oldName),
+          where('empresa', '==', selectedCompany)
+        );
+        
+        const querySnapshot = await getDocs(vehiclesToUpdateQuery);
+        const batch = writeBatch(firestore);
+        querySnapshot.forEach((document) => {
+          batch.update(document.ref, { cliente: data.name });
+        });
+        await batch.commit();
+      }
     }
   }
 
