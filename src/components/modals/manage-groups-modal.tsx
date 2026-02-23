@@ -48,15 +48,22 @@ export default function ManageGroupsModal({
     if (direction === 'up' && index === 0) return;
     if (direction === 'down' && index === groups.length - 1) return;
 
+    const newGroups = [...groups];
     const otherIndex = direction === 'up' ? index - 1 : index + 1;
-    const group1 = groups[index];
-    const group2 = groups[otherIndex];
-
-    const order1 = group1.order ?? index;
-    const order2 = group2.order ?? otherIndex;
     
-    onUpdateGroup(group1.id, { order: order2 });
-    onUpdateGroup(group2.id, { order: order1 });
+    // Swap elements in the array to reflect the new visual order
+    const temp = newGroups[index];
+    newGroups[index] = newGroups[otherIndex];
+    newGroups[otherIndex] = temp;
+
+    // Renumber the 'order' property for all groups based on the new array order
+    // This is a robust way to handle reordering, even if some 'order' fields are missing or duplicated.
+    newGroups.forEach((group, newIndex) => {
+        // Only trigger an update if the order property needs to be changed.
+        if (group.order !== newIndex) {
+            onUpdateGroup(group.id, { order: newIndex });
+        }
+    });
   };
 
 
