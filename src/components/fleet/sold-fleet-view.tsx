@@ -22,8 +22,8 @@ export default function SoldFleetView({ vehicles, companyId, onUpdateVehicle, gr
   const [isDetailsModalOpen, setDetailsModalOpen] = useState(false);
 
   const soldVehicles = vehicles
-    .filter((v) => v.status === 'vendido')
-    .sort((a, b) => new Date(b.vendaInfo?.dataVenda || 0).getTime() - new Date(a.vendaInfo?.dataVenda || 0).getTime());
+    .filter((v) => v.status === 'vendido' && v.vendaInfo) // Ensure vendaInfo exists
+    .sort((a, b) => new Date(b.vendaInfo!.dataVenda).getTime() - new Date(a.vendaInfo!.dataVenda).getTime());
 
   const openDetailsModal = (vehicle: Vehicle) => {
     setSelectedVehicle(vehicle);
@@ -55,11 +55,11 @@ export default function SoldFleetView({ vehicles, companyId, onUpdateVehicle, gr
                     <div className="flex justify-between items-center">
                         <div>
                             <p className="font-bold">{v.placa} - {v.modelo}</p>
-                            <p className="text-xs text-muted-foreground">Vendido em: {new Date(v.vendaInfo!.dataVenda).toLocaleDateString('pt-BR')}</p>
+                            <p className="text-xs text-muted-foreground">Vendido em: {v.vendaInfo ? new Date(v.vendaInfo.dataVenda).toLocaleDateString('pt-BR') : 'N/A'}</p>
                         </div>
                         <div className="text-right">
-                            <p className="font-bold text-green-600">{formatCurrency(v.vendaInfo!.valorVenda)}</p>
-                            <p className="text-xs text-muted-foreground">Comprador: {v.vendaInfo!.comprador}</p>
+                            <p className="font-bold text-green-600">{formatCurrency(v.vendaInfo?.valorVenda)}</p>
+                            <p className="text-xs text-muted-foreground">Comprador: {v.vendaInfo?.comprador}</p>
                         </div>
                     </div>
                   </div>
