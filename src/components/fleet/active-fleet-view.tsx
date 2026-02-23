@@ -78,12 +78,12 @@ export default function ActiveFleetView({
     }));
   }, [filteredVehicles, groups]);
 
-  const handleDragEnd = (vehicleId: string, newGroupName: string) => {
-    const vehicle = vehicles.find(v => v.id === vehicleId);
-    if(vehicle && vehicle.cliente !== newGroupName) {
-      onUpdateVehicle({...vehicle, cliente: newGroupName});
+  const handleVehicleDrop = (vehicleId: string, newGroupName: string) => {
+    const vehicle = allVehicles.find(v => v.id === vehicleId);
+    if (vehicle && vehicle.cliente !== newGroupName) {
+      onUpdateVehicle({ ...vehicle, cliente: newGroupName });
     }
-  }
+  };
 
   const findVehicleById = useCallback((id: string) => allVehicles.find(v => v.id === id), [allVehicles]);
 
@@ -160,7 +160,7 @@ export default function ActiveFleetView({
             <VehicleGroup 
               key={group.name} 
               group={group} 
-              onVehicleDrop={handleDragEnd}
+              onVehicleDrop={handleVehicleDrop}
               companyId={companyId}
               allVehicles={allVehicles}
               groups={groups}
