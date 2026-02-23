@@ -431,7 +431,7 @@ export default function VehicleDetailsModal({
                         
                         <CardContent className="p-6 space-y-4">
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                               <div><label className="text-xs font-bold text-muted-foreground uppercase">DADOS</label><input className="w-full p-2 border rounded-lg bg-background" type="date" value={maintDate} onChange={e => setMaintDate(e.target.value)} required /></div>
+                               <div><label className="text-xs font-bold text-muted-foreground uppercase">Data</label><input className="w-full p-2 border rounded-lg bg-background" type="date" value={maintDate} onChange={e => setMaintDate(e.target.value)} required /></div>
                                <div><label className="text-xs font-bold text-muted-foreground uppercase">KM REAL</label><input className="w-full p-2 border rounded-lg bg-background" type="number" value={maintKm} onChange={e => setMaintKm(e.target.value)} required /></div>
                                <div><label className="text-xs font-bold text-muted-foreground uppercase">Fornecedor</label><input className="w-full p-2 border rounded-lg bg-background" type="text" value={maintFornecedor} onChange={e => setMaintFornecedor(e.target.value)} required /></div>
                             </div>
@@ -530,3 +530,5 @@ export default function VehicleDetailsModal({
     </>
   );
 }
+
+    
