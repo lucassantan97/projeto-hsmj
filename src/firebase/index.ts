@@ -11,12 +11,10 @@ export function initializeFirebase() {
   return getSdks(app);
 }
 
-export function getSdks(firebaseApp: FirebaseApp) {
-  return {
-    firebaseApp,
-    auth: getAuth(firebaseApp),
-    firestore: getFirestore(firebaseApp)
-  };
+export function getSdks(FirebaseApp) {
+  const firestore = getFirestore(FirebaseApp);
+  const auth = getAuth(FirebaseApp);
+  return { firebaseApp: FirebaseApp, auth, firestore };
 }
 
 export * from './provider';

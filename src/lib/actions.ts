@@ -13,7 +13,7 @@ export async function generateSalesAdAction(vehicle: Vehicle) {
       anoModelo: vehicle.anoModelo,
       valorVenda: vehicle.vendaInfo?.valorVenda || vehicle.valorCompra,
       placa: vehicle.placa,
-      additionalDetails: `Veículo da empresa ${vehicle.empresa}, com ${vehicle.totalMaint ? vehicle.totalMaint.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '0'} em manutenções.`,
+      additionalDetails: `Veículo da empresa ${vehicle.empresa}.`,
     });
     return { success: true, ad: result.salesAd };
   } catch (error) {

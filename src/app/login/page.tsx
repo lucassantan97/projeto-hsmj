@@ -46,10 +46,10 @@ export default function LoginPage() {
     if (data.email === 'hs@hslocadora.com' && data.password === 'prisma35') {
       try {
         // Sign in anonymously to create a valid Firebase session
-        if (!user) {
+        if (!auth.currentUser) {
           await signInAnonymously(auth);
         }
-        // Let the useEffect handle the redirection
+        // Let the useEffect handle the redirection. It will trigger once the user state changes.
       } catch (e: any) {
         console.error("Anonymous sign-in error:", e);
         setError('Ocorreu um erro inesperado durante o login. Por favor, tente novamente.');
@@ -59,7 +59,7 @@ export default function LoginPage() {
     }
   };
 
-  // Show a loader while checking auth state or if user exists (to allow redirect to finish)
+  // Show a loader while checking auth state or if a user object already exists (to allow redirect to finish)
   if (isUserLoading || user) {
     return <FullPageLoader />;
   }
