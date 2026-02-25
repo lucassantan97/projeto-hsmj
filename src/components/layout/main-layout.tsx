@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import Header from './header';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import ActiveFleetView from '../fleet/active-fleet-view';
@@ -41,10 +41,6 @@ export default function MainLayout({
   onDeleteGroup,
 }: MainLayoutProps) {
   const companyTheme = COMPANIES[companyId].theme.primary;
-  const themeClass = `border-${companyTheme}`;
-  const bgThemeClass = `bg-${companyTheme}`;
-
-  const [activeTab, setActiveTab] = useState('active');
 
   return (
     <div className={`container mx-auto p-4 md:p-6 min-h-screen flex flex-col bg-background/80`}>
@@ -54,7 +50,7 @@ export default function MainLayout({
         onLogout={onLogout}
         onChangeCompany={onChangeCompany}
       />
-      <Tabs defaultValue="active" className="w-full" onValueChange={setActiveTab} value={activeTab}>
+      <Tabs defaultValue="active" className="w-full">
         <TabsList className="grid w-full grid-cols-4 bg-card shadow-sm p-2 mb-6 h-auto">
           <TabsTrigger value="active" className="py-3 text-sm md:text-base data-[state=active]:shadow-md">
             <Layers className="mr-2 h-4 w-4" /> Frota Ativa
