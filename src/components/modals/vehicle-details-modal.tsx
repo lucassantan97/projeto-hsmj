@@ -44,6 +44,7 @@ export default function VehicleDetailsModal({
     onAddGroup 
 }: VehicleDetailsModalProps) {
   const { toast } = useToast();
+  const [internalVehicle, setInternalVehicle] = useState<Vehicle | null>(vehicle);
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [isAiAnalysisLoading, setIsAiAnalysisLoading] = useState(false);
   const [newMaintItems, setNewMaintItems] = useState<MaintenanceItem[]>([]);
@@ -65,27 +66,30 @@ export default function VehicleDetailsModal({
     setNewItemDesc('');
     setNewItemValue('');
     setMaintDate(new Date().toISOString().split('T')[0]);
-    setMaintKm(vehicle?.kmAtual?.toString() ?? '');
+    setMaintKm(internalVehicle?.kmAtual?.toString() ?? '');
     setMaintFornecedor('');
     setAiAnalysisResult(null);
   }
 
   useEffect(() => {
-    if(isOpen) resetForm();
+    if(isOpen) {
+      setInternalVehicle(vehicle);
+      resetForm();
+    }
   }, [isOpen, vehicle]);
 
   const handleMoveCompany = () => {
-    if (!vehicle) return;
-    onUpdateVehicle({ ...vehicle, empresa: otherCompany });
-    toast({ title: 'Veículo Movido', description: `O veículo ${vehicle.placa} foi movido para a empresa ${otherCompany}.` });
+    if (!internalVehicle) return;
+    onUpdateVehicle({ ...internalVehicle, empresa: otherCompany });
+    toast({ title: 'Veículo Movido', description: `O veículo ${internalVehicle.placa} foi movido para a empresa ${otherCompany}.` });
     setIsOpen(false);
   };
   
   const handleTransferGroup = (newGroupId: string) => {
-    if (!vehicle) return;
-    onUpdateVehicle({ ...vehicle, cliente: newGroupId });
+    if (!internalVehicle) return;
+    onUpdateVehicle({ ...internalVehicle, cliente: newGroupId });
     setTransferGroupModalOpen(false);
-    toast({ title: 'Grupo Transferido', description: `O veículo ${vehicle.placa} foi movido para o grupo ${newGroupId}.` });
+    toast({ title: 'Grupo Transferido', description: `O veículo ${internalVehicle.placa} foi movido para o grupo ${newGroupId}.` });
   };
 
   const handleEditClick = () => {
@@ -99,48 +103,48 @@ export default function VehicleDetailsModal({
   };
   
   const handleCancelSale = () => {
-    if(!vehicle) return;
-    const { vendaInfo, ...restOfVehicle } = vehicle;
+    if(!internalVehicle) return;
+    const { vendaInfo, ...restOfVehicle } = internalVehicle;
     onUpdateVehicle({ ...restOfVehicle, status: 'ativo' });
-    toast({ title: 'Venda Cancelada', description: `O veículo ${vehicle.placa} está ativo novamente.` });
+    toast({ title: 'Venda Cancelada', description: `O veículo ${internalVehicle.placa} está ativo novamente.` });
   };
 
   const handleSaveVehicle = (vehicleData: Omit<Vehicle, 'id' | 'ownerUserId'>) => {
-    if(vehicle) {
-      onUpdateVehicle({ ...vehicle, ...vehicleData });
+    if(internalVehicle) {
+      onUpdateVehicle({ ...internalVehicle, ...vehicleData });
     } else {
       onAddVehicle(vehicleData)
     }
   }
 
   const handleSold = (saleInfo: Sale) => {
-    if (!vehicle) return;
-    onUpdateVehicle({ ...vehicle, status: 'vendido', vendaInfo: saleInfo, forSale: false });
+    if (!internalVehicle) return;
+    onUpdateVehicle({ ...internalVehicle, status: 'vendido', vendaInfo: saleInfo, forSale: false });
   };
 
   const handleAnnounceSale = () => {
-    if (!vehicle) return;
-    onUpdateVehicle({ ...vehicle, forSale: true });
-    toast({ title: 'Veículo Anunciado', description: `O veículo ${vehicle.placa} agora está listado para venda.` });
+    if (!internalVehicle) return;
+    onUpdateVehicle({ ...internalVehicle, forSale: true });
+    toast({ title: 'Veículo Anunciado', description: `O veículo ${internalVehicle.placa} agora está listado para venda.` });
   };
 
   const handleCancelAnnouncement = () => {
-    if (!vehicle) return;
-    onUpdateVehicle({ ...vehicle, forSale: false });
-    toast({ title: 'Anúncio Removido', description: `O veículo ${vehicle.placa} não está mais listado para venda.` });
+    if (!internalVehicle) return;
+    onUpdateVehicle({ ...internalVehicle, forSale: false });
+    toast({ title: 'Anúncio Removido', description: `O veículo ${internalVehicle.placa} não está mais listado para venda.` });
   };
   
   const handleMarkAsLicensed = () => {
-    if (!vehicle) return;
-    const newDueDate = getLicensingInfo(vehicle.placa, new Date().getFullYear() + 1).dueDate.toISOString().split('T')[0];
-    onUpdateVehicle({ ...vehicle, licenciamento: newDueDate });
-    toast({ title: "Licenciamento Atualizado", description: `Veículo ${vehicle.placa} regularizado até ${new Date(newDueDate).toLocaleDateString('pt-BR')}.` });
+    if (!internalVehicle) return;
+    const newDueDate = getLicensingInfo(internalVehicle.placa, new Date().getFullYear() + 1).dueDate.toISOString().split('T')[0];
+    onUpdateVehicle({ ...internalVehicle, licenciamento: newDueDate });
+    toast({ title: "Licenciamento Atualizado", description: `Veículo ${internalVehicle.placa} regularizado até ${new Date(newDueDate).toLocaleDateString('pt-BR')}.` });
   };
 
   const generatePDF = () => {
-    if (!vehicle) return;
+    if (!internalVehicle) return;
     const doc = new jsPDF();
-    const company = COMPANIES[vehicle.empresa];
+    const company = COMPANIES[internalVehicle.empresa];
   
     doc.setFontSize(18);
     doc.text(`Ficha do Veículo - ${company.name}`, 14, 22);
@@ -148,14 +152,14 @@ export default function VehicleDetailsModal({
     doc.setTextColor(100);
   
     const vehicleDetails = [
-      ["Placa", vehicle.placa],
-      ["Modelo", vehicle.modelo],
-      ["Grupo/Cliente", vehicle.cliente],
-      ["Ano/Modelo", vehicle.anoModelo || 'N/A'],
-      ["Renavam", vehicle.renavam || 'N/A'],
-      ["Chassi", vehicle.chassi || 'N/A'],
-      ["Data da Compra", vehicle.dataEntrada ? new Date(vehicle.dataEntrada).toLocaleDateString('pt-BR', {timeZone: 'UTC'}) : 'N/A'],
-      ["Valor de Compra", formatCurrency(vehicle.valorCompra)],
+      ["Placa", internalVehicle.placa],
+      ["Modelo", internalVehicle.modelo],
+      ["Grupo/Cliente", internalVehicle.cliente],
+      ["Ano/Modelo", internalVehicle.anoModelo || 'N/A'],
+      ["Renavam", internalVehicle.renavam || 'N/A'],
+      ["Chassi", internalVehicle.chassi || 'N/A'],
+      ["Data da Compra", internalVehicle.dataEntrada ? new Date(internalVehicle.dataEntrada).toLocaleDateString('pt-BR', {timeZone: 'UTC'}) : 'N/A'],
+      ["Valor de Compra", formatCurrency(internalVehicle.valorCompra)],
     ];
     
     (doc as any).autoTable({
@@ -166,20 +170,20 @@ export default function VehicleDetailsModal({
       headStyles: { fillColor: [30, 58, 138] }, // Primary color
     });
 
-    if (vehicle.observacao) {
+    if (internalVehicle.observacao) {
       doc.setFontSize(12);
       doc.text("Observações", 14, (doc as any).lastAutoTable.finalY + 15);
       doc.setFontSize(10);
-      const splitText = doc.splitTextToSize(vehicle.observacao, 180);
+      const splitText = doc.splitTextToSize(internalVehicle.observacao, 180);
       doc.text(splitText, 14, (doc as any).lastAutoTable.finalY + 22);
     }
   
-    if (vehicle.maintenances && vehicle.maintenances.length > 0) {
+    if (internalVehicle.maintenances && internalVehicle.maintenances.length > 0) {
       doc.addPage();
       doc.setFontSize(18);
       doc.text("Histórico de Manutenção", 14, 22);
       
-      vehicle.maintenances.forEach((maint, index) => {
+      [...internalVehicle.maintenances].sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime()).forEach((maint, index) => {
         const startY = index === 0 ? 30 : (doc as any).lastAutoTable.finalY + 15;
         
         doc.setFontSize(12);
@@ -212,11 +216,11 @@ export default function VehicleDetailsModal({
       });
     }
   
-    doc.save(`Ficha_Veiculo_${vehicle.placa}.pdf`);
+    doc.save(`Ficha_Veiculo_${internalVehicle.placa}.pdf`);
   };
 
   const handleFileUpload = async (file: File) => {
-    if (!file || !vehicle) return;
+    if (!file || !internalVehicle) return;
     setIsAiLoading(true);
     
     const reader = new FileReader();
@@ -230,7 +234,7 @@ export default function VehicleDetailsModal({
         if(data.date) setMaintDate(data.date);
         if(data.km) setMaintKm(data.km.toString());
         if(data.fornecedor) setMaintFornecedor(data.fornecedor);
-        if(data.items) setNewMaintItems(data.items.map(desc => ({ descricao: desc, valor: 0 })));
+        if(data.items) setNewMaintItems(data.items);
         toast({ title: "Dados Extraídos!", description: "Nota fiscal lida com sucesso pela IA." });
       } else {
         toast({ variant: 'destructive', title: "Erro de Leitura", description: result.error });
@@ -248,12 +252,12 @@ export default function VehicleDetailsModal({
   };
 
   const handleSaveMaintenance = () => {
-    if (!vehicle || !maintDate || !maintKm || !maintFornecedor || newMaintItems.length === 0) {
+    if (!internalVehicle || !maintDate || !maintKm || !maintFornecedor || newMaintItems.length === 0) {
         toast({ variant: "destructive", title: "Campos obrigatórios", description: "Data, KM, Fornecedor e ao menos um item são necessários." });
         return;
     }
     const newMaintenance = {
-        id: `maint-${vehicle.id}-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+        id: `maint-${internalVehicle.id}-${Date.now()}-${Math.random().toString(36).slice(2)}`,
         data: maintDate,
         km: parseInt(maintKm, 10),
         fornecedor: maintFornecedor,
@@ -261,25 +265,26 @@ export default function VehicleDetailsModal({
         total: newMaintItems.reduce((acc, item) => acc + item.valor, 0),
     };
     const updatedVehicle = {
-        ...vehicle,
-        kmAtual: parseInt(maintKm, 10), // Update current KM as well
-        maintenances: [...(vehicle.maintenances || []), newMaintenance],
+        ...internalVehicle,
+        kmAtual: Math.max(internalVehicle.kmAtual || 0, parseInt(maintKm, 10)),
+        maintenances: [...(internalVehicle.maintenances || []), newMaintenance],
     };
+    setInternalVehicle(updatedVehicle);
     onUpdateVehicle(updatedVehicle);
     toast({ title: "Manutenção Salva", description: "O histórico do veículo foi atualizado." });
     resetForm();
   }
 
   const handleAiAnalysis = async () => {
-    if (!vehicle || !vehicle.maintenances || vehicle.maintenances.length === 0) {
+    if (!internalVehicle || !internalVehicle.maintenances || internalVehicle.maintenances.length === 0) {
       toast({ title: "Sem dados", description: "Não há histórico de manutenção para analisar." });
       return;
     }
     setIsAiAnalysisLoading(true);
     setAiAnalysisResult(null);
     const result = await analyzeMaintenanceHistoryAction({
-      vehicleModel: vehicle.modelo,
-      maintenances: vehicle.maintenances.map(m => ({
+      vehicleModel: internalVehicle.modelo,
+      maintenances: internalVehicle.maintenances.map(m => ({
           data: m.data,
           km: m.km,
           total: m.total,
@@ -297,12 +302,13 @@ export default function VehicleDetailsModal({
   const newMaintenanceTotal = useMemo(() => newMaintItems.reduce((sum, item) => sum + item.valor, 0), [newMaintItems]);
 
   const licensingInfo = useMemo(() => {
-    if (!vehicle) return null;
-    return getLicensingInfo(vehicle.placa);
-  }, [vehicle]);
+    if (!internalVehicle) return null;
+    const dateToCheck = internalVehicle.licenciamento ? new Date(internalVehicle.licenciamento) : undefined;
+    return getLicensingInfo(internalVehicle.placa, dateToCheck?.getUTCFullYear());
+  }, [internalVehicle]);
 
-  if (!vehicle || !licensingInfo) return null;
-  const isSold = vehicle.status === 'vendido';
+  if (!internalVehicle || !licensingInfo) return null;
+  const isSold = internalVehicle.status === 'vendido';
   const companyTheme = COMPANIES[companyId].theme.primary;
 
   const getStatusColor = () => {
@@ -320,7 +326,7 @@ export default function VehicleDetailsModal({
       <DialogContent className="max-w-5xl max-h-[95vh] flex flex-col p-0">
         <DialogHeader className="p-6 border-b bg-muted/50 rounded-t-lg">
           <DialogTitle className="font-headline text-2xl">Ficha do Veículo</DialogTitle>
-          <DialogDescription>{vehicle.placa} - {vehicle.modelo}</DialogDescription>
+          <DialogDescription>{internalVehicle.placa} - {internalVehicle.modelo}</DialogDescription>
         </DialogHeader>
 
         <div className="flex-grow overflow-y-auto">
@@ -336,17 +342,17 @@ export default function VehicleDetailsModal({
                     {!isSold && <Button variant="outline" size="sm" onClick={() => setTransferGroupModalOpen(true)}><ArrowRightLeft className="h-4 w-4 mr-2"/>Transferir Grupo</Button>}
                     {!isSold && <Button variant="outline" size="sm" onClick={handleEditClick}><Pencil className="h-4 w-4 mr-2"/>Editar</Button>}
                     
-                    {!isSold && !vehicle.forSale && (
+                    {!isSold && !internalVehicle.forSale && (
                         <Button variant="outline" size="sm" className="border-cyan-500 text-cyan-600 hover:bg-cyan-50 hover:text-cyan-700" onClick={handleAnnounceSale}>
                             <Tag className="h-4 w-4 mr-2"/>Anunciar Venda
                         </Button>
                     )}
-                    {!isSold && vehicle.forSale && (
+                    {!isSold && internalVehicle.forSale && (
                         <Button variant="outline" size="sm" className="border-rose-500 text-rose-600 hover:bg-rose-50 hover:text-rose-700" onClick={handleCancelAnnouncement}>
                             <XCircle className="h-4 w-4 mr-2"/>Remover Anúncio
                         </Button>
                     )}
-                    {!isSold && vehicle.forSale && (
+                    {!isSold && internalVehicle.forSale && (
                         <Button variant="outline" size="sm" className="border-orange-500 text-orange-600 hover:bg-orange-50 hover:text-orange-700" onClick={handleSellClick}>
                             <Handshake className="h-4 w-4 mr-2"/>Registrar Venda
                         </Button>
@@ -362,21 +368,28 @@ export default function VehicleDetailsModal({
             <TabsContent value="details">
               <Card className="bg-muted/30 mb-8">
                   <CardContent className="p-6 grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-6">
-                      <div className="font-medium"><p className="text-xs text-muted-foreground">Placa</p><p>{vehicle.placa}</p></div>
-                      <div className="font-medium"><p className="text-xs text-muted-foreground">Modelo</p><p>{vehicle.modelo}</p></div>
-                      <div className="font-medium"><p className="text-xs text-muted-foreground">Grupo</p><p>{vehicle.cliente}</p></div>
-                      <div className="font-medium"><p className="text-xs text-muted-foreground">Valor de Compra</p><p>{formatCurrency(vehicle.valorCompra)}</p></div>
-                      <div className="font-medium"><p className="text-xs text-muted-foreground">Data da Compra</p><p>{vehicle.dataEntrada ? new Date(vehicle.dataEntrada).toLocaleDateString('pt-BR', {timeZone: 'UTC'}) : 'N/A'}</p></div>
-                      <div className="font-medium"><p className="text-xs text-muted-foreground">Ano/Modelo</p><p>{vehicle.anoModelo}</p></div>
-                      <div className="font-medium"><p className="text-xs text-muted-foreground">KM Atual</p><p>{vehicle.kmAtual?.toLocaleString('pt-BR') || 'N/A'}</p></div>
-                      <div className="font-medium"><p className="text-xs text-muted-foreground">Renavam</p><p>{vehicle.renavam || 'N/A'}</p></div>
-                      {vehicle.chassi && (
-                          <div className="font-medium col-span-2"><p className="text-xs text-muted-foreground">Chassi</p><p>{vehicle.chassi}</p></div>
+                      <div className="font-medium"><p className="text-xs text-muted-foreground">Placa</p><p>{internalVehicle.placa}</p></div>
+                      <div className="font-medium"><p className="text-xs text-muted-foreground">Modelo</p><p>{internalVehicle.modelo}</p></div>
+                      <div className="font-medium"><p className="text-xs text-muted-foreground">Grupo</p><p>{internalVehicle.cliente}</p></div>
+                      <div className="font-medium"><p className="text-xs text-muted-foreground">Valor de Compra</p><p>{formatCurrency(internalVehicle.valorCompra)}</p></div>
+                      <div className="font-medium"><p className="text-xs text-muted-foreground">Data da Compra</p><p>{internalVehicle.dataEntrada ? new Date(internalVehicle.dataEntrada).toLocaleDateString('pt-BR', {timeZone: 'UTC'}) : 'N/A'}</p></div>
+                      <div className="font-medium"><p className="text-xs text-muted-foreground">Ano/Modelo</p><p>{internalVehicle.anoModelo}</p></div>
+                      <div className="font-medium"><p className="text-xs text-muted-foreground">KM Atual</p><p>{internalVehicle.kmAtual?.toLocaleString('pt-BR') || 'N/A'}</p></div>
+                      <div className="font-medium"><p className="text-xs text-muted-foreground">Renavam</p><p>{internalVehicle.renavam || 'N/A'}</p></div>
+                      {internalVehicle.chassi && (
+                          <div className="font-medium col-span-2"><p className="text-xs text-muted-foreground">Chassi</p><p>{internalVehicle.chassi}</p></div>
                       )}
-                      {vehicle.observacao && (
+                      {isSold && internalVehicle.vendaInfo && (
+                        <>
+                          <div className="font-medium text-green-600"><p className="text-xs text-muted-foreground">Data da Venda</p><p>{new Date(internalVehicle.vendaInfo.dataVenda).toLocaleDateString('pt-BR', {timeZone: 'UTC'})}</p></div>
+                          <div className="font-medium text-green-600"><p className="text-xs text-muted-foreground">Valor da Venda</p><p>{formatCurrency(internalVehicle.vendaInfo.valorVenda)}</p></div>
+                          <div className="font-medium col-span-2"><p className="text-xs text-muted-foreground">Comprador</p><p>{internalVehicle.vendaInfo.comprador}</p></div>
+                        </>
+                      )}
+                      {internalVehicle.observacao && (
                         <div className="font-medium col-span-full">
                           <p className="text-xs text-muted-foreground flex items-center gap-1"><MessageSquareText className="h-3 w-3"/>Observação</p>
-                          <p className="text-sm whitespace-pre-wrap">{vehicle.observacao}</p>
+                          <p className="text-sm whitespace-pre-wrap">{internalVehicle.observacao}</p>
                         </div>
                       )}
                   </CardContent>
@@ -384,7 +397,7 @@ export default function VehicleDetailsModal({
                <h3 className="text-lg font-bold font-headline mb-4">Histórico Completo</h3>
                 <ScrollArea className="h-64 border rounded-lg">
                     <div className="space-y-3 p-4">
-                    {(vehicle.maintenances && vehicle.maintenances.length > 0) ? vehicle.maintenances.sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime()).map(m => (
+                    {(internalVehicle.maintenances && internalVehicle.maintenances.length > 0) ? [...internalVehicle.maintenances].sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime()).map(m => (
                         <div key={m.id} className="text-sm bg-muted/30 p-3 rounded-lg">
                             <div className="flex justify-between font-bold mb-1">
                                 <span>{new Date(m.data).toLocaleDateString('pt-BR', {timeZone: 'UTC'})} - {m.fornecedor}</span>
@@ -480,13 +493,13 @@ export default function VehicleDetailsModal({
                                 </p>
                             </div>
                             <div className="text-right">
-                                <p className="text-2xl font-bold">{licensingInfo.daysRemaining > 0 ? licensingInfo.daysRemaining : '-'}</p>
-                                <p className="text-xs text-muted-foreground">{licensingInfo.daysRemaining > 0 ? 'dias restantes' : 'dias vencidos'}</p>
+                                <p className="text-2xl font-bold">{licensingInfo.daysRemaining >= 0 ? licensingInfo.daysRemaining : Math.abs(licensingInfo.daysRemaining)}</p>
+                                <p className="text-xs text-muted-foreground">{licensingInfo.daysRemaining >= 0 ? 'dias restantes' : 'dias vencidos'}</p>
                             </div>
                         </div>
                         <p className="text-xs text-muted-foreground">
                             O cálculo do vencimento é baseado no final da placa para pessoa jurídica. 
-                            A data de vencimento atualizada é {vehicle.licenciamento ? new Date(vehicle.licenciamento).toLocaleDateString('pt-BR') : licensingInfo.dueDate.toLocaleDateString('pt-BR')}.
+                            A data de vencimento atualizada é {internalVehicle.licenciamento ? new Date(internalVehicle.licenciamento).toLocaleDateString('pt-BR', {timeZone: 'UTC'}) : 'Data base do sistema'}.
                         </p>
                         {!isSold && (
                             <div className="flex gap-4 pt-4 border-t">
@@ -506,7 +519,7 @@ export default function VehicleDetailsModal({
     <AddEditVehicleModal 
         isOpen={isEditModalOpen}
         setIsOpen={setEditModalOpen}
-        vehicle={vehicle}
+        vehicle={internalVehicle}
         allVehicles={allVehicles}
         groups={groups}
         companyId={companyId}
@@ -515,7 +528,7 @@ export default function VehicleDetailsModal({
     <SellVehicleModal 
         isOpen={isSellModalOpen}
         setIsOpen={setSellModalOpen}
-        vehicle={vehicle}
+        vehicle={internalVehicle}
         onSold={handleSold}
     />
     <TransferGroupModal
@@ -525,7 +538,7 @@ export default function VehicleDetailsModal({
         companyId={companyId}
         onTransfer={handleTransferGroup}
         onAddGroup={onAddGroup}
-        currentVehicle={vehicle}
+        currentVehicle={internalVehicle}
     />
     </>
   );

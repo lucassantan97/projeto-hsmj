@@ -12,20 +12,34 @@ export function useLicensingAlerts(vehicles: Vehicle[]): LicensingAlert[] {
 
     vehicles.forEach((vehicle) => {
       if (vehicle.status !== 'ativo') return;
-
-      const currentYear = new Date().getFullYear();
-      let yearToCheck = currentYear;
       
-      // If vehicle has a licensing date, check if it's for the current year or future
+      let info;
+      // If a specific licensing date is set, use it to calculate status
       if (vehicle.licenciamento) {
-        const licensiamentoYear = new Date(vehicle.licenciamento).getUTCFullYear();
-        if (licensiamentoYear >= currentYear) {
-           // Already licensed for this year or a future year, so check for next year
-           yearToCheck = licensiamentoYear + 1;
+        const licDate = new Date(vehicle.licenciamento);
+        // We need to pass the year of the stored date to getLicensingInfo for a correct calculation basis.
+        info = getLicensingInfo(vehicle.placa, licDate.getUTCFullYear());
+
+        // Now, we need to manually override the status based on the *actual stored date*
+        const today = new Date();
+        today.setHours(0,0,0,0);
+        const daysRemaining = Math.ceil((licDate.getTime() - today.getTime()) / (1000 * 3600 * 24));
+        
+        info.daysRemaining = daysRemaining;
+        if (daysRemaining < 0) {
+          info.status = 'vencido';
+        } else if (daysRemaining <= 30) {
+          info.status = 'alerta';
+        } else {
+          info.status = 'ok';
         }
+        info.dueDate = licDate;
+
+      } else {
+        // If no specific date, calculate based on current year
+        info = getLicensingInfo(vehicle.placa);
       }
 
-      const info = getLicensingInfo(vehicle.placa, yearToCheck);
 
       if (info.status === 'vencido' || info.status === 'alerta') {
         generatedAlerts.push({
