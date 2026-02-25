@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import KpiCard from './kpi-card';
@@ -15,6 +15,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
 import VehicleModelsChart from './vehicle-models-chart';
 import { useToast } from '@/hooks/use-toast';
 import { formatCurrency } from '@/lib/utils';
+import { Skeleton } from '../ui/skeleton';
 
 interface BiDashboardProps {
   vehicles: Vehicle[];
@@ -22,20 +23,35 @@ interface BiDashboardProps {
 
 export default function BiDashboard({ vehicles }: BiDashboardProps) {
   const { toast } = useToast();
-  const currentYear = new Date().getFullYear();
-  const [year, setYear] = useState(currentYear.toString());
+  const [year, setYear] = useState<string | undefined>(undefined);
   const [month, setMonth] = useState('all');
 
+  // Set the initial year on the client side to prevent hydration mismatch.
+  useEffect(() => {
+    setYear(new Date().getFullYear().toString());
+  }, []);
+
   const years = useMemo(() => {
-    const vehicleYears = vehicles.flatMap(v => [
-      v.dataEntrada ? new Date(v.dataEntrada).getFullYear() : null,
-      v.vendaInfo?.dataVenda ? new Date(v.vendaInfo.dataVenda).getFullYear() : null,
-      ...(v.maintenances?.map(m => new Date(m.data).getFullYear()) || [])
-    ]).filter(Boolean) as number[];
-    return [...new Set([currentYear, ...vehicleYears])].sort().reverse();
-  }, [vehicles, currentYear]);
+    const allYears = new Set<number>();
+    // Add current year if it's set
+    if (year) {
+      allYears.add(parseInt(year, 10));
+    }
+    
+    // Scan all data for other relevant years
+    vehicles.forEach(v => {
+      if (v.dataEntrada) allYears.add(new Date(v.dataEntrada).getFullYear());
+      if (v.vendaInfo?.dataVenda) allYears.add(new Date(v.vendaInfo.dataVenda).getFullYear());
+      v.maintenances?.forEach(m => allYears.add(new Date(m.data).getFullYear()));
+    });
+
+    // Return a sorted array of unique years
+    return Array.from(allYears).sort((a, b) => b - a);
+  }, [vehicles, year]);
 
   const filteredData = useMemo(() => {
+    if (!year) return []; // Guard against null year during initial render
+
     return vehicles.map(v => {
       const filteredMaintenances = v.maintenances?.filter(m => {
         const d = new Date(m.data);
@@ -57,7 +73,7 @@ export default function BiDashboard({ vehicles }: BiDashboardProps) {
       return {
         ...v,
         maintenances: filteredMaintenances,
-        vendaInfo: filteredSale, // This will be null if it doesn't match the filter
+        vendaInfo: filteredSale,
       };
     });
   }, [vehicles, year, month]);
@@ -77,6 +93,7 @@ export default function BiDashboard({ vehicles }: BiDashboardProps) {
   );
 
   const generateDashboardPDF = () => {
+    if (!year) return;
     const doc = new jsPDF();
     const monthName = month === 'all' ? 'Todo o Ano' : new Date(2000, parseInt(month), 1).toLocaleString('pt-BR', { month: 'long' });
     const period = `${monthName} de ${year}`;
@@ -96,7 +113,7 @@ export default function BiDashboard({ vehicles }: BiDashboardProps) {
       head: [['Indicador', 'Valor']],
       body: kpiData,
       theme: 'striped',
-      headStyles: { fillColor: [30, 58, 138] }, // Primary color
+      headStyles: { fillColor: [30, 58, 138] },
     });
 
     doc.setFontSize(10);
@@ -105,6 +122,18 @@ export default function BiDashboard({ vehicles }: BiDashboardProps) {
 
     doc.save(`Relatorio_BI_${year}_${monthName.replace(' ', '_')}.pdf`);
   };
+
+  // Show a skeleton loader while waiting for the client-side to set the year.
+  if (!year) {
+    return (
+      <section className="space-y-6">
+        <Card className="border-l-4 border-foreground"><CardHeader><Skeleton className="h-12 w-full" /></CardHeader></Card>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6"><Skeleton className="h-24 w-full" /><Skeleton className="h-24 w-full" /><Skeleton className="h-24 w-full" /></div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6"><Skeleton className="h-80 w-full" /><Skeleton className="h-80 w-full" /></div>
+        <Skeleton className="h-96 w-full" />
+      </section>
+    )
+  }
 
   return (
     <section className="space-y-6">
