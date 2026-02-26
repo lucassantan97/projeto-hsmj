@@ -1,4 +1,5 @@
-// Force rebuild: 2024-07-29T12:00:00Z
+'use client';
+// Cache-Buster-v4: 2024-02-26T01:25:00Z
 import { cn } from "@/lib/utils";
 
 export function HsLogo({ className }: { className?: string }) {

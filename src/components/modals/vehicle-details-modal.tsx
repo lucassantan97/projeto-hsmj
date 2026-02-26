@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
@@ -7,7 +6,7 @@ import 'jspdf-autotable';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '../ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
-import type { Vehicle, CompanyId, MaintenanceItem, Group, Sale } from '@/lib/types';
+import type { Vehicle, CompanyId, MaintenanceItem, Group, Sale, Maintenance } from '@/lib/types';
 import { COMPANIES } from '@/lib/types';
 import { formatCurrency, cn, getLicensingInfo } from '@/lib/utils';
 import { Handshake, Pencil, Building, ArrowRightLeft, FileText, Undo2, Edit, CloudUpload, Wrench, Plus, Loader2, BrainCircuit, MessageSquareText, FileBadge, Check, Tag, XCircle } from 'lucide-react';
@@ -93,8 +92,8 @@ export default function VehicleDetailsModal({
   };
 
   const handleEditClick = () => {
-    setIsOpen(false); // Close details
-    setEditModalOpen(true); // Open edit
+    setIsOpen(false);
+    setEditModalOpen(true);
   };
 
   const handleSellClick = () => {
@@ -141,6 +140,11 @@ export default function VehicleDetailsModal({
     toast({ title: "Licenciamento Atualizado", description: `Veículo ${internalVehicle.placa} regularizado até ${new Date(newDueDate).toLocaleDateString('pt-BR')}.` });
   };
 
+  const sortedMaintenances = useMemo(() => {
+    if (!internalVehicle?.maintenances) return [];
+    return [...internalVehicle.maintenances].sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime());
+  }, [internalVehicle?.maintenances]);
+
   const generatePDF = () => {
     if (!internalVehicle) return;
     const doc = new jsPDF();
@@ -167,7 +171,7 @@ export default function VehicleDetailsModal({
       head: [['Campo', 'Valor']],
       body: vehicleDetails,
       theme: 'striped',
-      headStyles: { fillColor: [30, 58, 138] }, // Primary color
+      headStyles: { fillColor: [30, 58, 138] },
     });
 
     if (internalVehicle.observacao) {
@@ -178,12 +182,12 @@ export default function VehicleDetailsModal({
       doc.text(splitText, 14, (doc as any).lastAutoTable.finalY + 22);
     }
   
-    if (internalVehicle.maintenances && internalVehicle.maintenances.length > 0) {
+    if (sortedMaintenances.length > 0) {
       doc.addPage();
       doc.setFontSize(18);
       doc.text("Histórico de Manutenção", 14, 22);
       
-      [...internalVehicle.maintenances].sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime()).forEach((maint, index) => {
+      sortedMaintenances.forEach((maint, index) => {
         const startY = index === 0 ? 30 : (doc as any).lastAutoTable.finalY + 15;
         
         doc.setFontSize(12);
@@ -256,7 +260,7 @@ export default function VehicleDetailsModal({
         toast({ variant: "destructive", title: "Campos obrigatórios", description: "Data, KM, Fornecedor e ao menos um item são necessários." });
         return;
     }
-    const newMaintenance = {
+    const newMaintenance: Maintenance = {
         id: `maint-${internalVehicle.id}-${Date.now()}-${Math.random().toString(36).slice(2)}`,
         data: maintDate,
         km: parseInt(maintKm, 10),
@@ -264,7 +268,7 @@ export default function VehicleDetailsModal({
         items: newMaintItems,
         total: newMaintItems.reduce((acc, item) => acc + item.valor, 0),
     };
-    const updatedVehicle = {
+    const updatedVehicle: Vehicle = {
         ...internalVehicle,
         kmAtual: Math.max(internalVehicle.kmAtual || 0, parseInt(maintKm, 10)),
         maintenances: [...(internalVehicle.maintenances || []), newMaintenance],
@@ -318,7 +322,6 @@ export default function VehicleDetailsModal({
         default: return 'text-green-500';
     }
   };
-
 
   return (
     <>
@@ -394,17 +397,17 @@ export default function VehicleDetailsModal({
                       )}
                   </CardContent>
               </Card>
-               <h3 className="text-lg font-bold font-headline mb-4">Histórico Completo</h3>
+               <h3 className="text-lg font-bold font-headline mb-4">Histórico Completo (Excel Style)</h3>
                 <ScrollArea className="h-64 border rounded-lg">
                     <div className="space-y-3 p-4">
-                    {(internalVehicle.maintenances && internalVehicle.maintenances.length > 0) ? [...internalVehicle.maintenances].sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime()).map(m => (
-                        <div key={m.id} className="text-sm bg-muted/30 p-3 rounded-lg">
+                    {sortedMaintenances.length > 0 ? sortedMaintenances.map(m => (
+                        <div key={m.id} className="text-sm bg-muted/30 p-3 rounded-lg border-l-4 border-primary">
                             <div className="flex justify-between font-bold mb-1">
                                 <span>{new Date(m.data).toLocaleDateString('pt-BR', {timeZone: 'UTC'})} - {m.fornecedor}</span>
                                 <Badge variant={m.total > 500 ? 'destructive' : 'secondary'}>{formatCurrency(m.total)}</Badge>
                             </div>
                             <p className="text-xs text-muted-foreground">KM: {m.km.toLocaleString('pt-BR')}</p>
-                            <ul className="list-disc ml-4 text-xs text-muted-foreground">
+                            <ul className="list-disc ml-4 text-xs text-muted-foreground mt-2">
                                 {m.items.map((item, i) => <li key={i}>{item.descricao} ({formatCurrency(item.valor)})</li>)}
                             </ul>
                         </div>
@@ -499,7 +502,6 @@ export default function VehicleDetailsModal({
                         </div>
                         <p className="text-xs text-muted-foreground">
                             O cálculo do vencimento é baseado no final da placa para pessoa jurídica. 
-                            A data de vencimento atualizada é {internalVehicle.licenciamento ? new Date(internalVehicle.licenciamento).toLocaleDateString('pt-BR', {timeZone: 'UTC'}) : 'Data base do sistema'}.
                         </p>
                         {!isSold && (
                             <div className="flex gap-4 pt-4 border-t">
@@ -543,5 +545,3 @@ export default function VehicleDetailsModal({
     </>
   );
 }
-
-    

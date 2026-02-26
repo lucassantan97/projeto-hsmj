@@ -1,5 +1,5 @@
 'use client';
-// Force rebuild: 2024-07-29T12:00:00Z
+// Force rebuild: 2024-02-26T01:25:00Z
 
 import { useState, useEffect } from 'react';
 import { useForm, SubmitHandler } from 'react-hook-form';
@@ -15,7 +15,6 @@ import { useAuth, useUser } from '@/firebase';
 import { signInAnonymously } from 'firebase/auth';
 import FullPageLoader from '@/components/ui/loader';
 
-// Simplified form data type
 type LoginFormData = {
   email: string;
   password: string;
@@ -27,7 +26,6 @@ export default function LoginPage() {
   const auth = useAuth();
   const { user, isUserLoading } = useUser();
 
-  // If a user session exists (anonymous or otherwise), redirect to the main app
   useEffect(() => {
     if (!isUserLoading && user) {
       router.push('/');
@@ -43,24 +41,20 @@ export default function LoginPage() {
 
   const onSubmit: SubmitHandler<LoginFormData> = async (data) => {
     setError(null);
-    // Hardcoded credential check
     if (data.email === 'hs@hslocadora.com' && data.password === 'prisma35') {
       try {
-        // Sign in anonymously to create a valid Firebase session
         if (!auth.currentUser) {
           await signInAnonymously(auth);
         }
-        // Let the useEffect handle the redirection. It will trigger once the user state changes.
       } catch (e: any) {
         console.error("Anonymous sign-in error:", e);
-        setError('Ocorreu um erro inesperado durante o login. Por favor, tente novamente.');
+        setError('Ocorreu um erro inesperado durante o login.');
       }
     } else {
       setError('E-mail ou senha inválidos.');
     }
   };
 
-  // Show a loader while checking auth state or if a user object already exists (to allow redirect to finish)
   if (isUserLoading || user) {
     return <FullPageLoader />;
   }
