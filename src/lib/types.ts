@@ -44,6 +44,8 @@ export interface Maintenance {
   fornecedor: string;
   items: MaintenanceItem[];
   total: number;
+  arquivoUrl?: string;
+  arquivoNome?: string;
 }
 
 export interface MaintenanceItem {
