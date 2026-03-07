@@ -2,13 +2,33 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, doc, query, where, writeBatch, getDocs } from 'firebase/firestore';
+import { collection, doc, query, where, writeBatch, getDocs, timestamp } from 'firebase/firestore';
 import { setDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import CompanySelector from './auth/company-selector';
 import MainLayout from './layout/main-layout';
 import type { CompanyId, Vehicle, Group, User } from '@/lib/types';
 import AiChatWidget from './ai-chat-widget';
 import FullPageLoader from './ui/loader';
+
+function normalizeCompraDate(input: any) {
+  if (!input) return input;
+
+  // já é Timestamp
+  if (typeof input === 'object' && typeof input.toDate === 'function') return input;
+
+  // string BR dd/mm/yyyy
+  if (typeof input === 'string' && input.includes('/')) {
+    const [dd, mm, yyyy] = input.split('/');
+    const d = new Date(Number(yyyy), Number(mm) - 1, Number(dd));
+    return Timestamp.fromDate(d);
+  }
+
+  // ISO yyyy-mm-dd
+  const d = new Date(input);
+  if (!Number.isNaN(d.getTime())) return Timestamp.fromDate(d);
+
+  return input;
+}
 
 const mockUser: User = {
   name: 'Analista',
@@ -79,22 +99,47 @@ const AppShell = () => {
     handleChangeCompany();
   };
   
-  const updateVehicle = (updatedVehicle: Vehicle) => {
-    if (!user) return;
-    const vehicleRef = doc(firestore, 'users', user.uid, 'vehicles', updatedVehicle.id);
-    setDocumentNonBlocking(vehicleRef, updatedVehicle, { merge: true });
+ const updateVehicle = (updatedVehicle: Vehicle) => {
+  if (!user) return;
+
+  const vehicleRef = doc(firestore, 'users', user.uid, 'vehicles', updatedVehicle.id);
+
+  const normalized = normalizeCompraDate((updatedVehicle as any).datadacompra);
+
+  // monta payload SEM undefined
+  const payload: any = {
+    ...updatedVehicle,
+  };
+
+  if (normalized) {
+    payload.datadacompra = normalized;
+  } else {
+    // se veio vazio, remove do payload pra não mandar undefined
+    delete payload.datadacompra;
   }
 
+  setDocumentNonBlocking(vehicleRef, payload, { merge: true });
+};
+
   const addVehicle = (newVehicle: Omit<Vehicle, 'id' | 'ownerUserId'>) => {
-    if (!user) return;
-    const newDocRef = doc(collection(firestore, 'users', user.uid, 'vehicles'));
-    const vehicleWithId: Vehicle = {
-      ...newVehicle,
-      id: newDocRef.id,
-      ownerUserId: user.uid,
-    };
-    setDocumentNonBlocking(newDocRef, vehicleWithId, {});
+  if (!user) return;
+
+  const newDocRef = doc(collection(firestore, 'users', user.uid, 'vehicles'));
+
+  const normalized = normalizeCompraDate((newVehicle as any).datadacompra);
+
+  const vehicleWithId: any = {
+    ...newVehicle,
+    id: newDocRef.id,
+    ownerUserId: user.uid,
   };
+
+  if (normalized) {
+    vehicleWithId.datadacompra = normalized;
+  }
+
+  setDocumentNonBlocking(newDocRef, vehicleWithId, {});
+};
 
   const addGroup = (newGroup: Omit<Group, 'id' | 'ownerUserId' | 'order'>) => {
     if(!user) return;

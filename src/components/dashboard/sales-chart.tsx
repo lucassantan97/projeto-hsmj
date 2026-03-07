@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect, useState } from 'react';
 import { Line, LineChart, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { Vehicle } from '@/lib/types';
@@ -10,17 +10,18 @@ interface SalesChartProps {
 }
 
 export default function SalesChart({ data }: SalesChartProps) {
-  const chartData = useMemo(() => {
-    const monthlySales: { [key: number]: number } = {};
+  // 🔒 evita glitch do Recharts/ResizeObserver no first paint
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
-    for (let i = 0; i < 12; i++) {
-      monthlySales[i] = 0;
-    }
+  const chartData = useMemo(() => {
+    const monthlySales: Record<number, number> = {};
+    for (let i = 0; i < 12; i++) monthlySales[i] = 0;
 
     data.forEach(vehicle => {
-      if (vehicle.status === 'vendido' && vehicle.vendaInfo) {
+      if (vehicle.status === 'vendido' && vehicle.vendaInfo?.dataVenda) {
         const month = new Date(vehicle.vendaInfo.dataVenda).getMonth();
-        monthlySales[month]++;
+        monthlySales[month] = (monthlySales[month] || 0) + 1;
       }
     });
 
@@ -30,13 +31,19 @@ export default function SalesChart({ data }: SalesChartProps) {
     }));
   }, [data]);
 
+  if (!mounted) return null;
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-center text-sm uppercase font-bold text-muted-foreground font-headline">Evolução de Vendas</CardTitle>
+        <CardTitle className="text-center text-sm uppercase font-bold text-muted-foreground font-headline">
+          Evolução de Vendas
+        </CardTitle>
       </CardHeader>
-      <CardContent className="h-64">
-        <ResponsiveContainer width="100%" height="100%">
+
+      {/* ✅ Sem h-64 + sem height="100%" */}
+      <CardContent>
+        <ResponsiveContainer width="100%" height={260}>
           <LineChart data={chartData}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} />
             <XAxis dataKey="name" fontSize={12} tickLine={false} axisLine={false} />
@@ -48,7 +55,16 @@ export default function SalesChart({ data }: SalesChartProps) {
                 borderRadius: 'var(--radius)',
               }}
             />
-            <Line type="monotone" dataKey="Vendas" stroke="hsl(var(--chart-1))" strokeWidth={2} activeDot={{ r: 8 }} />
+
+            <Line
+              type="monotone"
+              dataKey="Vendas"
+              stroke="hsl(var(--chart-1))"
+              strokeWidth={2}
+              dot={false}
+              activeDot={false}
+              isAnimationActive={false}
+            />
           </LineChart>
         </ResponsiveContainer>
       </CardContent>

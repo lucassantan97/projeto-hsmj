@@ -1,52 +1,22 @@
 import type { Metadata } from 'next';
-import { Inter, Space_Grotesk, Source_Code_Pro } from 'next/font/google';
 import './globals.css';
-import { cn } from '@/lib/utils';
-import { Toaster } from '@/components/ui/toaster';
-import { FirebaseClientProvider } from '@/firebase';
 
-const fontBody = Inter({
-  subsets: ['latin'],
-  variable: '--font-body',
-});
-
-const fontHeadline = Space_Grotesk({
-  subsets: ['latin'],
-  variable: '--font-headline',
-});
-
-const fontCode = Source_Code_Pro({
-  subsets: ['latin'],
-  variable: '--font-code',
-});
+import { FirebaseClientProvider } from '../firebase/client-provider';
 
 export const metadata: Metadata = {
-  title: 'FleetWise AI',
-  description: 'Gestão de Frota - HS & MJ (Sistema BI + IA)',
+  title: 'FleetWise',
+  description: 'Sistema de gestão',
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="pt-BR" translate="no" className="notranslate">
       <head>
-        <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚗</text></svg>" />
+        <meta name="google" content="notranslate" />
+        <meta httpEquiv="Content-Language" content="pt-BR" />
       </head>
-      <body
-        className={cn(
-          'font-body antialiased',
-          fontBody.variable,
-          fontHeadline.variable,
-          fontCode.variable
-        )}
-      >
-        <FirebaseClientProvider>
-          {children}
-        </FirebaseClientProvider>
-        <Toaster />
+      <body translate="no">
+        <FirebaseClientProvider>{children}</FirebaseClientProvider>
       </body>
     </html>
   );

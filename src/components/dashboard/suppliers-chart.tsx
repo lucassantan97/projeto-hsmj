@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { Bar, BarChart, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatCurrency } from '@/lib/utils';
@@ -11,12 +11,16 @@ interface SuppliersChartProps {
 }
 
 export default function SuppliersChart({ data }: SuppliersChartProps) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
   const chartData = useMemo(() => {
-    const supplierCosts: { [key: string]: number } = {};
+    const supplierCosts: Record<string, number> = {};
 
     data.forEach(vehicle => {
       vehicle.maintenances?.forEach(maint => {
-        supplierCosts[maint.fornecedor] = (supplierCosts[maint.fornecedor] || 0) + maint.total;
+        const fornecedor = (maint.fornecedor || 'Sem fornecedor').trim();
+        supplierCosts[fornecedor] = (supplierCosts[fornecedor] || 0) + (maint.total || 0);
       });
     });
 
@@ -26,16 +30,21 @@ export default function SuppliersChart({ data }: SuppliersChartProps) {
       .slice(0, 5);
   }, [data]);
 
+  if (!mounted) return null;
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-center text-sm uppercase font-bold text-muted-foreground font-headline">Top Fornecedores</CardTitle>
+        <CardTitle className="text-center text-sm uppercase font-bold text-muted-foreground font-headline">
+          Top Fornecedores
+        </CardTitle>
       </CardHeader>
-      <CardContent className="h-80">
-        <ResponsiveContainer width="100%" height="100%">
+
+      <CardContent>
+        <ResponsiveContainer width="100%" height={320}>
           <BarChart data={chartData} layout="vertical">
             <XAxis type="number" hide />
-            <YAxis type="category" dataKey="name" width={100} fontSize={12} tickLine={false} axisLine={false} />
+            <YAxis type="category" dataKey="name" width={110} fontSize={12} tickLine={false} axisLine={false} />
             <Tooltip
               cursor={{ fill: 'hsl(var(--muted))' }}
               contentStyle={{
@@ -45,7 +54,7 @@ export default function SuppliersChart({ data }: SuppliersChartProps) {
               }}
               formatter={(value: number) => formatCurrency(value)}
             />
-            <Bar dataKey="Custo" fill="hsl(var(--chart-4))" radius={[0, 4, 4, 0]} barSize={30} />
+            <Bar dataKey="Custo" fill="hsl(var(--chart-4))" radius={[0, 4, 4, 0]} barSize={30} isAnimationActive={false} />
           </BarChart>
         </ResponsiveContainer>
       </CardContent>

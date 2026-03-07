@@ -1,5 +1,20 @@
 'use client';
     
+function stripUndefined<T>(obj: T): T {
+  if (Array.isArray(obj)) {
+    return obj.map(stripUndefined) as any;
+  }
+  if (obj && typeof obj === 'object') {
+    const out: any = {};
+    for (const [k, v] of Object.entries(obj as any)) {
+      if (v === undefined) continue; // ✅ remove undefined
+      out[k] = stripUndefined(v);
+    }
+    return out;
+  }
+  return obj;
+}
+
 import {
   setDoc,
   addDoc,
@@ -16,20 +31,29 @@ import {FirestorePermissionError} from '@/firebase/errors';
  * Initiates a setDoc operation for a document reference.
  * Does NOT await the write operation internally.
  */
-export function setDocumentNonBlocking(docRef: DocumentReference, data: any, options: SetOptions) {
-  setDoc(docRef, data, options).catch(error => {
+export function setDocumentNonBlocking(
+  docRef: DocumentReference,
+  data: any,
+  options: SetOptions
+) {
+
+  const cleanData = stripUndefined(data);
+
+  setDoc(docRef, cleanData, options).catch(error => {
+
     errorEmitter.emit(
       'permission-error',
       new FirestorePermissionError({
         path: docRef.path,
-        operation: 'write', // or 'create'/'update' based on options
-        requestResourceData: data,
+        operation: 'write',
+        requestResourceData: cleanData,
       })
-    )
-  })
-  // Execution continues immediately
-}
 
+    );
+
+  });
+
+}
 
 /**
  * Initiates an addDoc operation for a collection reference.

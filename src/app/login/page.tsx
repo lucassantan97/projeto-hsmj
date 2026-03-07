@@ -12,7 +12,7 @@ import { Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { HsLogo } from '@/components/icons/hs-logo';
 import { useAuth, useUser } from '@/firebase';
-import { signInAnonymously } from 'firebase/auth';
+import { signInWithEmailAndPassword } from 'firebase/auth';
 import FullPageLoader from '@/components/ui/loader';
 
 type LoginFormData = {
@@ -39,21 +39,16 @@ export default function LoginPage() {
     },
   });
 
-  const onSubmit: SubmitHandler<LoginFormData> = async (data) => {
-    setError(null);
-    if (data.email === 'hs@hslocadora.com' && data.password === 'prisma35') {
-      try {
-        if (!auth.currentUser) {
-          await signInAnonymously(auth);
-        }
-      } catch (e: any) {
-        console.error("Anonymous sign-in error:", e);
-        setError('Ocorreu um erro inesperado durante o login.');
-      }
-    } else {
-      setError('E-mail ou senha inválidos.');
-    }
-  };
+ const onSubmit: SubmitHandler<LoginFormData> = async (data) => {
+  setError(null);
+
+  try {
+    await signInWithEmailAndPassword(auth, data.email, data.password);
+  } catch (e: any) {
+    console.error("Login error:", e);
+    setError('E-mail ou senha inválidos.');
+  }
+};
 
   if (isUserLoading || user) {
     return <FullPageLoader />;

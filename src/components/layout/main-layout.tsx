@@ -8,7 +8,6 @@ import SoldFleetView from '../fleet/sold-fleet-view';
 import BiDashboard from '../dashboard/bi-dashboard';
 import { Layers, PieChart, Tag } from 'lucide-react';
 import type { CompanyId, User, Vehicle, Group } from '@/lib/types';
-import { COMPANIES } from '@/lib/types';
 import SalesView from '../fleet/sales-view';
 
 interface MainLayoutProps {
@@ -40,31 +39,40 @@ export default function MainLayout({
   onUpdateGroup,
   onDeleteGroup,
 }: MainLayoutProps) {
-  const companyTheme = COMPANIES[companyId].theme.primary;
+  const activeVehicles = React.useMemo(
+    () => vehicles.filter(v => v.status === 'ativo'),
+    [vehicles]
+  );
 
   return (
-    <div className={`container mx-auto p-4 md:p-6 min-h-screen flex flex-col bg-background/80`}>
+    <div className="container mx-auto p-4 md:p-6 min-h-screen flex flex-col bg-background/80">
       <Header
         user={user}
         companyId={companyId}
         onLogout={onLogout}
         onChangeCompany={onChangeCompany}
       />
+
+      {/* ✅ IMPORTANTE: NÃO usar forceMount no Tabs */}
       <Tabs defaultValue="active" className="w-full">
         <TabsList className="grid w-full grid-cols-3 bg-card shadow-sm p-2 mb-6 h-auto">
           <TabsTrigger value="active" className="py-3 text-sm md:text-base data-[state=active]:shadow-md">
             <Layers className="mr-2 h-4 w-4" /> Frota Ativa
           </TabsTrigger>
+
           <TabsTrigger value="sales" className="py-3 text-sm md:text-base data-[state=active]:shadow-md">
             <Tag className="mr-2 h-4 w-4" /> Vendas e Histórico
           </TabsTrigger>
+
           <TabsTrigger value="dashboard" className="py-3 text-sm md:text-base data-[state=active]:shadow-md">
             <PieChart className="mr-2 h-4 w-4" /> Dashboard BI
           </TabsTrigger>
         </TabsList>
-        <TabsContent value="active">
-          <ActiveFleetView 
-            vehicles={vehicles.filter(v => v.status === 'ativo')} 
+
+        {/* ✅ IMPORTANTE: forceMount é NO TabsContent */}
+        <TabsContent value="active" forceMount className="data-[state=inactive]:hidden">
+          <ActiveFleetView
+            vehicles={activeVehicles}
             allVehicles={vehicles}
             groups={groups}
             loading={loading}
@@ -76,27 +84,27 @@ export default function MainLayout({
             onDeleteGroup={onDeleteGroup}
           />
         </TabsContent>
-        <TabsContent value="sales">
-            <div className="space-y-8">
-                <div>
-                    <h2 className="text-2xl font-headline font-bold mb-4">Veículos à Venda</h2>
-                    <SalesView
-                        vehicles={vehicles}
-                        companyId={companyId}
-                        onUpdateVehicle={onUpdateVehicle}
-                    />
-                </div>
-                <SoldFleetView 
-                    vehicles={vehicles}
-                    companyId={companyId}
-                    onUpdateVehicle={onUpdateVehicle}
-                    groups={groups}
-                    onAddVehicle={onAddVehicle}
-                    onAddGroup={onAddGroup}
-                />
-            </div>
+
+        <TabsContent value="sales" forceMount className="data-[state=inactive]:hidden">
+          <div className="space-y-8">
+            <SalesView
+              vehicles={vehicles}
+              companyId={companyId}
+              onUpdateVehicle={onUpdateVehicle}
+            />
+
+            <SoldFleetView
+              vehicles={vehicles}
+              companyId={companyId}
+              onUpdateVehicle={onUpdateVehicle}
+              groups={groups}
+              onAddVehicle={onAddVehicle}
+              onAddGroup={onAddGroup}
+            />
+          </div>
         </TabsContent>
-        <TabsContent value="dashboard">
+
+        <TabsContent value="dashboard" forceMount className="data-[state=inactive]:hidden">
           <BiDashboard vehicles={vehicles} />
         </TabsContent>
       </Tabs>
