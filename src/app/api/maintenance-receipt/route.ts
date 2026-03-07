@@ -2,9 +2,27 @@ import { NextRequest, NextResponse } from 'next/server';
 import { adminDb } from '@/firebase/admin';
 import { maintenanceReceiptDataExtraction } from '@/ai/flows/maintenance-receipt-data-extraction';
 import type { Vehicle, Maintenance } from '@/lib/types';
-import { FieldValue } from 'firebase-admin/firestore';
 
 export const dynamic = 'force-dynamic';
+
+function parseMaintenanceDate(dateString: string): number {
+  if (!dateString) return 0;
+
+  // Espera formato brasileiro: dd/mm/aaaa
+  const parts = dateString.split('/');
+
+  if (parts.length === 3) {
+    const [day, month, year] = parts.map(Number);
+
+    if (!day || !month || !year) return 0;
+
+    return new Date(year, month - 1, day).getTime();
+  }
+
+  // Fallback para outros formatos, se vierem
+  const fallback = new Date(dateString).getTime();
+  return Number.isNaN(fallback) ? 0 : fallback;
+}
 
 export async function POST(request: NextRequest) {
   const apiKey = request.headers.get('x-api-key');
@@ -56,36 +74,62 @@ export async function POST(request: NextRequest) {
       .collection('vehicles')
       .doc(vehicleId);
 
-    const vehicleDoc = await vehicleRef.get();
+    const result = await adminDb.runTransaction(async (transaction) => {
+      const vehicleDoc = await transaction.get(vehicleRef);
 
-    if (!vehicleDoc.exists) {
-      return NextResponse.json({ error: 'Veículo não encontrado' }, { status: 404 });
-    }
+      if (!vehicleDoc.exists) {
+        throw new Error('VEHICLE_NOT_FOUND');
+      }
 
-    const vehicleData = vehicleDoc.data() as Vehicle;
-    const extractedKm = Number(extractionResult.km || 0);
+      const vehicleData = vehicleDoc.data() as Vehicle;
+      const extractedKm = Number(extractionResult.km || 0);
 
-    const newMaintenanceRecord: Maintenance = {
-      id: `maint-${vehicleId}-${Date.now()}`,
-      data: extractionResult.date,
-      km: extractedKm,
-      fornecedor: extractionResult.fornecedor,
-      items: extractionResult.items,
-      total: extractionResult.total,
-    };
+      const newMaintenanceRecord: Maintenance = {
+        id: `maint-${vehicleId}-${Date.now()}`,
+        data: extractionResult.date,
+        km: extractedKm,
+        fornecedor: extractionResult.fornecedor,
+        items: extractionResult.items,
+        total: extractionResult.total,
+      };
 
-    await vehicleRef.update({
-      maintenances: FieldValue.arrayUnion(newMaintenanceRecord),
-      kmAtual: Math.max(vehicleData.kmAtual || 0, extractedKm),
+      const currentMaintenances = Array.isArray(vehicleData.maintenances)
+        ? vehicleData.maintenances
+        : [];
+
+      const sortedMaintenances = [...currentMaintenances, newMaintenanceRecord].sort(
+        (a, b) => {
+          const dateDiff =
+            parseMaintenanceDate(a.data) - parseMaintenanceDate(b.data);
+
+          if (dateDiff !== 0) return dateDiff;
+
+          return (a.km || 0) - (b.km || 0);
+        }
+      );
+
+      transaction.update(vehicleRef, {
+        maintenances: sortedMaintenances,
+        kmAtual: Math.max(vehicleData.kmAtual || 0, extractedKm),
+      });
+
+      return newMaintenanceRecord;
     });
 
     return NextResponse.json({
       success: true,
       message: 'Registro de manutenção adicionado com sucesso.',
-      data: newMaintenanceRecord,
+      data: result,
     });
   } catch (error: any) {
     console.error('Erro na API:', error);
+
+    if (error.message === 'VEHICLE_NOT_FOUND') {
+      return NextResponse.json(
+        { error: 'Veículo não encontrado' },
+        { status: 404 }
+      );
+    }
 
     return NextResponse.json(
       {
