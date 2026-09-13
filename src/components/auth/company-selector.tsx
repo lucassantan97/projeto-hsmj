@@ -1,18 +1,34 @@
 'use client';
-// Force rebuild: 2026-09-13T02:35:00Z
+// Force rebuild: 2026-09-13T02:55:00Z
 
 import { Button } from '@/components/ui/button';
 import type { User, CompanyId } from '@/lib/types';
 import { LogOut } from 'lucide-react';
 import { Card, CardContent } from '../ui/card';
+import { useAuth } from '@/firebase';
+import { signOut } from 'firebase/auth';
+import { useRouter } from 'next/navigation';
 
 interface CompanySelectorProps {
   user: User;
   onSelectCompany: (company: CompanyId) => void;
-  onLogout: () => void;
+  onLogout?: () => void;
 }
 
 export default function CompanySelector({ user, onSelectCompany, onLogout }: CompanySelectorProps) {
+  const auth = useAuth();
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    try {
+      if (onLogout) onLogout();
+      await signOut(auth);
+      router.push('/login');
+    } catch (error) {
+      console.error('Erro ao deslogar:', error);
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-[90] bg-background flex flex-col items-center justify-center fade-in p-4">
       <h2 className="text-2xl md:text-3xl font-bold font-headline text-foreground mb-2">
@@ -51,7 +67,7 @@ export default function CompanySelector({ user, onSelectCompany, onLogout }: Com
             <div className="w-28 h-20 mb-4 flex items-center justify-center">
               <img 
                 src="/mj-logo.png" 
-                alt="MJ Locadora.png" 
+                alt="MJ Locadora" 
                 className="max-h-full max-w-full object-contain"
               />
             </div>
@@ -64,7 +80,12 @@ export default function CompanySelector({ user, onSelectCompany, onLogout }: Com
           </CardContent>
         </Card>
       </div>
-      <Button variant="ghost" onClick={onLogout} className="mt-12 text-muted-foreground hover:text-destructive">
+      
+      <Button 
+        variant="ghost" 
+        onClick={handleLogout} 
+        className="mt-12 text-muted-foreground hover:text-destructive cursor-pointer"
+      >
         <LogOut className="mr-2 h-4 w-4" /> Sair da conta
       </Button>
     </div>
