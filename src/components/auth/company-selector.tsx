@@ -1,10 +1,9 @@
 'use client';
-// Force rebuild: 2024-07-29T12:00:00Z
+// Force rebuild: 2026-09-13T02:30:00Z
 
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import type { User, CompanyId } from '@/lib/types';
-import { HsLogo } from '../icons/hs-logo';
-import { MjLogo } from '../icons/mj-logo';
 import { LogOut } from 'lucide-react';
 import { Card, CardContent } from '../ui/card';
 
@@ -18,7 +17,7 @@ export default function CompanySelector({ user, onSelectCompany, onLogout }: Com
   return (
     <div className="fixed inset-0 z-[90] bg-background flex flex-col items-center justify-center fade-in p-4">
       <h2 className="text-2xl md:text-3xl font-bold font-headline text-foreground mb-2">
-        Bem-vindo(a), <span className="text-primary">{user.name.split(' ')[0]}</span>
+        Bem-vindo(a), <span className="text-primary">Chefe</span>
       </h2>
       <p className="text-muted-foreground mb-10">
         Selecione a empresa para gerenciar:
@@ -29,8 +28,14 @@ export default function CompanySelector({ user, onSelectCompany, onLogout }: Com
           className="flex-1 p-8 rounded-2xl shadow-lg border-b-8 border-hsRed hover:-translate-y-2 hover:shadow-2xl transition-all group relative overflow-hidden cursor-pointer"
         >
           <CardContent className="relative z-10 flex flex-col items-center p-0">
-            <div className="transform scale-150 mb-6">
-              <HsLogo />
+            <div className="w-28 h-20 relative mb-4 flex items-center justify-center">
+              <Image 
+                src="/hs-logo.png" 
+                alt="HS Locadora" 
+                width={112} 
+                height={80} 
+                className="object-contain"
+              />
             </div>
             <h3 className="text-2xl font-bold font-headline text-foreground">
               <span>HS Locadora</span>
@@ -40,13 +45,20 @@ export default function CompanySelector({ user, onSelectCompany, onLogout }: Com
             </p>
           </CardContent>
         </Card>
+
         <Card
           onClick={() => onSelectCompany('MJ')}
           className="flex-1 p-8 rounded-2xl shadow-lg border-b-8 border-mjOrange hover:-translate-y-2 hover:shadow-2xl transition-all group relative overflow-hidden cursor-pointer"
         >
           <CardContent className="relative z-10 flex flex-col items-center p-0">
-            <div className="transform scale-150 mb-6">
-              <MjLogo />
+            <div className="w-28 h-20 relative mb-4 flex items-center justify-center">
+              <Image 
+                src="/mj-logo.png" 
+                alt="MJ Locadora" 
+                width={112} 
+                height={80} 
+                className="object-contain"
+              />
             </div>
             <h3 className="text-2xl font-bold font-headline text-foreground">
               MJ Locadora

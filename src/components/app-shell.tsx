@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, doc, query, where, writeBatch, getDocs, timestamp } from 'firebase/firestore';
+import { collection, doc, query, where, writeBatch, getDocs, Timestamp } from 'firebase/firestore';
 import { setDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import CompanySelector from './auth/company-selector';
 import MainLayout from './layout/main-layout';
@@ -31,7 +31,7 @@ function normalizeCompraDate(input: any) {
 }
 
 const mockUser: User = {
-  name: 'Analista',
+  name: 'Chefe',
   avatarUrl: `https://i.pravatar.cc/150?u=analista`
 };
 
