@@ -1,74 +1,107 @@
-// This file is machine-generated - edit at your own risk.
-'use server';
-/**
- * @fileOverview An AI agent that extracts data from maintenance receipts.
- *
- * - maintenanceReceiptDataExtraction - A function that handles the data extraction process.
- * - MaintenanceReceiptDataExtractionInput - The input type for the maintenanceReceiptDataExtraction function.
- * - MaintenanceReceiptDataExtractionOutput - The return type for the maintenanceReceiptDataExtraction function.
- */
+import { GoogleGenAI, Type } from '@google/genai';
 
-import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+const ai = new GoogleGenAI({});
 
-const MaintenanceReceiptDataExtractionInputSchema = z.object({
-  photoDataUri: z
-    .string()
-    .describe(
-      "A photo of a maintenance receipt, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
-    ),
-});
-export type MaintenanceReceiptDataExtractionInput = z.infer<typeof MaintenanceReceiptDataExtractionInputSchema>;
-
-const MaintenanceItemSchema = z.object({
-    descricao: z.string().describe('The description of the maintenance item or service.'),
-    valor: z.number().describe('The cost of the individual item or service.'),
-});
-
-const MaintenanceReceiptDataExtractionOutputSchema = z.object({
-  date: z.string().describe('The date of the maintenance in YYYY-MM-DD format.'),
-  km: z.number().describe('The current KM of the vehicle at the time of maintenance.'),
-  fornecedor: z.string().describe('The name of the maintenance provider.'),
-  items: z.array(MaintenanceItemSchema).describe('An array of maintenance items, each with a description and a value.'),
-  total: z.number().describe('The total cost of the maintenance.'),
-});
-export type MaintenanceReceiptDataExtractionOutput = z.infer<typeof MaintenanceReceiptDataExtractionOutputSchema>;
-
-export async function maintenanceReceiptDataExtraction(input: MaintenanceReceiptDataExtractionInput): Promise<MaintenanceReceiptDataExtractionOutput> {
-  return maintenanceReceiptDataExtractionFlow(input);
+export interface MaintenanceExtractionInput {
+  photoDataUri: string;
 }
 
-const prompt = ai.definePrompt({
-  name: 'maintenanceReceiptDataExtractionPrompt',
-  input: {schema: MaintenanceReceiptDataExtractionInputSchema},
-  output: {schema: MaintenanceReceiptDataExtractionOutputSchema},
-  prompt: `You are an AI assistant that extracts data from maintenance receipts.
+export interface MaintenanceItem {
+  descricao: string;
+  valor: number;
+}
 
-  Analyze the following maintenance receipt image and extract the following information:
-  - Date of maintenance (YYYY-MM-DD)
-  - Current KM of the vehicle
-  - Name of the maintenance provider
-  - A list of maintenance items, with a description (descricao) and value (valor) for each.
-  - Total cost of maintenance (total)
+export interface MaintenanceExtractionOutput {
+  date: string;
+  km: number;
+  fornecedor: string;
+  items: MaintenanceItem[];
+  total: number;
+}
 
-  Return the information as a JSON object.
-  Here is the receipt:
-  {{media url=photoDataUri}}
-  Ensure that the outputted JSON is parsable.
-  `,
-});
+export async function maintenanceReceiptDataExtraction(
+  input: MaintenanceExtractionInput
+): Promise<MaintenanceExtractionOutput> {
+  const { photoDataUri } = input;
 
-const maintenanceReceiptDataExtractionFlow = ai.defineFlow(
-  {
-    name: 'maintenanceReceiptDataExtractionFlow',
-    inputSchema: MaintenanceReceiptDataExtractionInputSchema,
-    outputSchema: MaintenanceReceiptDataExtractionOutputSchema,
-  },
-  async input => {
-    const {output} = await prompt(input);
-    if (!output) {
-      throw new Error('AI prompt failed to produce output.');
-    }
-    return output;
+  const matches = photoDataUri.match(/^data:(.+);base64,(.+)$/);
+  if (!matches || matches.length !== 3) {
+    throw new Error('Data URI inválida para processamento.');
   }
-);
+
+  const mimeType = matches[1];
+  const base64Data = matches[2];
+
+  const contents = [
+    {
+      inlineData: {
+        mimeType: mimeType,
+        data: base64Data,
+      },
+    },
+    {
+      text: 'Analise a ordem de serviço/nota fiscal veicular (mesmo que tenha múltiplas páginas). Extraia a data no formato DD/MM/AAAA (se o ano tiver 2 dígitos como 23, converta para 2023), o KM, o nome do fornecedor, os itens (peças e serviços com seus valores) e o valor total final.',
+    },
+  ];
+
+  const config = {
+    responseMimeType: 'application/json',
+    responseSchema: {
+      type: Type.OBJECT,
+      properties: {
+        date: {
+          type: Type.STRING,
+          description: 'Data do serviço no formato DD/MM/AAAA',
+        },
+        km: {
+          type: Type.NUMBER,
+          description: 'Quilometragem informada',
+        },
+        fornecedor: {
+          type: Type.STRING,
+          description: 'Nome da oficina',
+        },
+        items: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              descricao: { type: Type.STRING },
+              valor: { type: Type.NUMBER },
+            },
+            required: ['descricao', 'valor'],
+          },
+        },
+        total: {
+          type: Type.NUMBER,
+          description: 'Valor total geral da nota',
+        },
+      },
+      required: ['date', 'fornecedor', 'items', 'total'],
+    },
+  };
+
+  let response;
+
+  try {
+    response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents,
+      config,
+    });
+  } catch (err: any) {
+    console.warn('>>> Gemini 2.5 ocupado/com erro. Alternando para 1.5-flash...', err?.message);
+    response = await ai.models.generateContent({
+      model: 'gemini-1.5-flash',
+      contents,
+      config,
+    });
+  }
+
+  const responseText = response.text;
+  if (!responseText) {
+    throw new Error('A IA não retornou conteúdo válido.');
+  }
+
+  return JSON.parse(responseText) as MaintenanceExtractionOutput;
+}

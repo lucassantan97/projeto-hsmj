@@ -1,4 +1,3 @@
-'use server';
 /**
  * @fileOverview A chat agent for answering questions about the vehicle fleet.
  *

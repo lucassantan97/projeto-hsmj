@@ -2,8 +2,7 @@
 
 import { generateSalesAd } from '@/ai/flows/generate-sales-ad';
 import { maintenanceReceiptDataExtraction } from '@/ai/flows/maintenance-receipt-data-extraction';
-import { analyzeMaintenanceHistory, MaintenanceAnalysisInputSchema } from '@/ai/flows/analyze-maintenance-history';
-import { z } from 'zod';
+import { analyzeMaintenanceHistory } from '@/ai/flows/analyze-maintenance-history';
 import type { Vehicle } from './types';
 import { ask, type ChatInput } from '@/ai/flows/chat-flow';
 
@@ -23,36 +22,37 @@ export async function generateSalesAdAction(vehicle: Vehicle) {
   }
 }
 
-
 export async function extractMaintenanceDataAction(photoDataUri: string) {
-    if (!photoDataUri) {
-        return { success: false, error: 'No photo data provided.' };
-    }
-    try {
-        const result = await maintenanceReceiptDataExtraction({ photoDataUri });
-        return { success: true, data: result };
-    } catch (error) {
-        console.error('Error extracting maintenance data:', error);
-        return { success: false, error: 'Failed to extract data from receipt.' };
-    }
+  if (!photoDataUri) {
+    return { success: false, error: 'No photo data provided.' };
+  }
+  console.log('>>> [Server Action] Processando arquivo com Gemini...');
+  try {
+    const result = await maintenanceReceiptDataExtraction({ photoDataUri });
+    console.log('>>> [Server Action] Extração concluída com sucesso:', result);
+    return { success: true, data: result };
+  } catch (error: any) {
+    console.error('>>> [Server Action] Erro na extração:', error);
+    return { success: false, error: error.message || 'Failed to extract data from receipt.' };
+  }
 }
 
-export async function analyzeMaintenanceHistoryAction(input: z.infer<typeof MaintenanceAnalysisInputSchema>) {
-    try {
-        const result = await analyzeMaintenanceHistory(input);
-        return { success: true, analysis: result.analysis };
-    } catch (error) {
-        console.error('Error analyzing maintenance history:', error);
-        return { success: false, error: 'Failed to analyze history.' };
-    }
+export async function analyzeMaintenanceHistoryAction(input: any) {
+  try {
+    const result = await analyzeMaintenanceHistory(input);
+    return { success: true, analysis: result.analysis };
+  } catch (error) {
+    console.error('Error analyzing maintenance history:', error);
+    return { success: false, error: 'Failed to analyze history.' };
+  }
 }
 
 export async function chatAction(input: ChatInput) {
-    try {
-        const result = await ask(input);
-        return { success: true, answer: result.answer };
-    } catch (error) {
-        console.error('Error in chat action:', error);
-        return { success: false, error: 'Failed to get a response from the AI.' };
-    }
+  try {
+    const result = await ask(input);
+    return { success: true, answer: result.answer };
+  } catch (error) {
+    console.error('Error in chat action:', error);
+    return { success: false, error: 'Failed to get a response from the AI.' };
+  }
 }

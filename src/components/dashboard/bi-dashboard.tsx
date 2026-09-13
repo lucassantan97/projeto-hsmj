@@ -28,11 +28,12 @@ interface BiDashboardProps {
 }
 
 /**
- * Converte vários formatos possíveis em Date de forma segura.
+{
+  * Converte vários formatos possíveis em Date de forma segura.
  * - Aceita Firestore Timestamp (toDate)
- * - Aceita ISO string "YYYY-MM-DD" (seu caso em dataEntrada)
+ * - Aceita formato brasileiro "DD/MM/AAAA" (manutenções)
+ * - Aceita ISO string "YYYY-MM-DD"
  * - Aceita Date
- * - Retorna null se inválido
  */
 function toDate(value: any): Date | null {
   if (!value) return null;
@@ -43,22 +44,34 @@ function toDate(value: any): Date | null {
     return d instanceof Date && !Number.isNaN(d.getTime()) ? d : null;
   }
 
-  // Date
+  // Instância de Date
   if (value instanceof Date) {
     return !Number.isNaN(value.getTime()) ? value : null;
   }
 
-  // String ISO ou compatível
+  // String
   if (typeof value === 'string') {
-    // Seu formato: "2017-06-13" => seguro
+    // Tratamento para data brasileira "DD/MM/AAAA"
+    if (value.includes('/')) {
+      const parts = value.split('/');
+      if (parts.length === 3) {
+        const day = parseInt(parts[0], 10);
+        const month = parseInt(parts[1], 10) - 1; // Mês no JS é 0-indexed (0=Jan, 11=Dez)
+        const year = parseInt(parts[2], 10);
+        const d = new Date(year, month, day);
+        return !Number.isNaN(d.getTime()) ? d : null;
+      }
+    }
+
+    // String ISO "YYYY-MM-DD" ou compatível
     const d = new Date(value);
     return Number.isNaN(d.getTime()) ? null : d;
   }
 
-  // number (timestamp ms) ou outros
   const d = new Date(value);
   return Number.isNaN(d.getTime()) ? null : d;
 }
+ 
 
 export default function BiDashboard({ vehicles }: BiDashboardProps) {
   const { toast } = useToast();

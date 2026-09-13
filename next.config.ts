@@ -16,6 +16,11 @@ const nextConfig: NextConfig = {
       { protocol: 'https', hostname: 'picsum.photos', pathname: '/**' },
     ],
   },
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '10mb', // Aumenta o limite para aceitar PDFs de múltiplas páginas
+    },
+  },
 };
 
 export default nextConfig;

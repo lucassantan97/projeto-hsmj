@@ -166,1150 +166,1175 @@ export default function VehicleDetailsModal({
     return new Date().toISOString().split('T')[0];
   };
 
-  const sortMaintenances = (maintenances: Maintenance[]) => {
-    return [...maintenances].sort((a, b) => {
-      const dateDiff = parseMaintenanceDate(a.data) - parseMaintenanceDate(b.data);
-      if (dateDiff !== 0) return dateDiff;
-      return (a.km || 0) - (b.km || 0);
-    });
-  };
+  {
+    // Ordena as manutenções da MAIS RECENTE para a MAIS ANTIGA
+    const sortMaintenances = (maintenances: Maintenance[]) => {
+      return [...maintenances].sort((a, b) => {
+        // Função auxiliar para converter "DD/MM/AAAA" em objeto Date
+        const parseDate = (dateStr: string) => {
+          if (!dateStr) return new Date(0);
+          if (dateStr.includes('/')) {
+            const [day, month, year] = dateStr.split('/');
+            return new Date(Number(year), Number(month) - 1, Number(day));
+          }
+          return new Date(dateStr);
+        };
 
-  const resetForm = () => {
-    setNewMaintItems([]);
-    setNewItemDesc('');
-    setNewItemValue('');
-    setMaintDate(new Date().toISOString().split('T')[0]);
-    setMaintKm(internalVehicle?.kmAtual?.toString() ?? '');
-    setMaintFornecedor('');
-    setAiAnalysisResult(null);
-    setEditingMaintenanceId(null);
-    setUploadedMaintenanceFileUrl('');
-    setUploadedMaintenanceFileName('');
-  };
+        const dateA = parseDate(a.data).getTime();
+        const dateB = parseDate(b.data).getTime();
 
-  useEffect(() => {
-    if (isOpen) {
-      setInternalVehicle(vehicle);
+        // Ordem decrescente (B - A) para o mais recente ficar em 1º lugar
+        if (dateB !== dateA) {
+          return dateB - dateA;
+        }
+
+        // Se as datas forem iguais, usa o KM como critério de desempate
+        return (b.km || 0) - (a.km || 0);
+      });
+    }
+
+    const resetForm = () => {
       setNewMaintItems([]);
       setNewItemDesc('');
       setNewItemValue('');
       setMaintDate(new Date().toISOString().split('T')[0]);
-      setMaintKm(vehicle?.kmAtual?.toString() ?? '');
+      setMaintKm(internalVehicle?.kmAtual?.toString() ?? '');
       setMaintFornecedor('');
       setAiAnalysisResult(null);
       setEditingMaintenanceId(null);
       setUploadedMaintenanceFileUrl('');
       setUploadedMaintenanceFileName('');
-    }
-  }, [isOpen, vehicle]);
+    };
 
-  const handleMoveCompany = () => {
-    if (!internalVehicle) return;
-    onUpdateVehicle({ ...internalVehicle, empresa: otherCompany });
-    toast({
-      title: 'Veículo Movido',
-      description: `O veículo ${internalVehicle.placa} foi movido para a empresa ${otherCompany}.`,
-    });
-    setIsOpen(false);
-  };
+    useEffect(() => {
+      if (isOpen) {
+        setInternalVehicle(vehicle);
+        setNewMaintItems([]);
+        setNewItemDesc('');
+        setNewItemValue('');
+        setMaintDate(new Date().toISOString().split('T')[0]);
+        setMaintKm(vehicle?.kmAtual?.toString() ?? '');
+        setMaintFornecedor('');
+        setAiAnalysisResult(null);
+        setEditingMaintenanceId(null);
+        setUploadedMaintenanceFileUrl('');
+        setUploadedMaintenanceFileName('');
+      }
+    }, [isOpen, vehicle]);
 
-  const handleTransferGroup = (newGroupId: string) => {
-    if (!internalVehicle) return;
-    onUpdateVehicle({ ...internalVehicle, cliente: newGroupId });
-    setTransferGroupModalOpen(false);
-    toast({
-      title: 'Grupo Transferido',
-      description: `O veículo ${internalVehicle.placa} foi movido para o grupo ${newGroupId}.`,
-    });
-  };
+    const handleMoveCompany = () => {
+      if (!internalVehicle) return;
+      onUpdateVehicle({ ...internalVehicle, empresa: otherCompany });
+      toast({
+        title: 'Veículo Movido',
+        description: `O veículo ${internalVehicle.placa} foi movido para a empresa ${otherCompany}.`,
+      });
+      setIsOpen(false);
+    };
 
-  const handleEditClick = () => {
-    setIsOpen(false);
-    setEditModalOpen(true);
-  };
+    const handleTransferGroup = (newGroupId: string) => {
+      if (!internalVehicle) return;
+      onUpdateVehicle({ ...internalVehicle, cliente: newGroupId });
+      setTransferGroupModalOpen(false);
+      toast({
+        title: 'Grupo Transferido',
+        description: `O veículo ${internalVehicle.placa} foi movido para o grupo ${newGroupId}.`,
+      });
+    };
 
-  const handleSellClick = () => {
-    setIsOpen(false);
-    setSellModalOpen(true);
-  };
+    const handleEditClick = () => {
+      setIsOpen(false);
+      setEditModalOpen(true);
+    };
 
-  const handleCancelSale = () => {
-    if (!internalVehicle) return;
-    const { vendaInfo, ...restOfVehicle } = internalVehicle;
-    onUpdateVehicle({ ...restOfVehicle, status: 'ativo' });
-    toast({
-      title: 'Venda Cancelada',
-      description: `O veículo ${internalVehicle.placa} está ativo novamente.`,
-    });
-  };
+    const handleSellClick = () => {
+      setIsOpen(false);
+      setSellModalOpen(true);
+    };
 
-  const handleSaveVehicle = (vehicleData: Omit<Vehicle, 'id' | 'ownerUserId'>) => {
-    if (internalVehicle) {
-      onUpdateVehicle({ ...internalVehicle, ...vehicleData });
-    } else {
-      onAddVehicle(vehicleData);
-    }
-  };
+    const handleCancelSale = () => {
+      if (!internalVehicle) return;
+      const { vendaInfo, ...restOfVehicle } = internalVehicle;
+      onUpdateVehicle({ ...restOfVehicle, status: 'ativo' });
+      toast({
+        title: 'Venda Cancelada',
+        description: `O veículo ${internalVehicle.placa} está ativo novamente.`,
+      });
+    };
 
-  const handleSold = (saleInfo: Sale) => {
-    if (!internalVehicle) return;
-    onUpdateVehicle({
-      ...internalVehicle,
-      status: 'vendido',
-      vendaInfo: saleInfo,
-      forSale: false,
-    });
-  };
+    const handleSaveVehicle = (vehicleData: Omit<Vehicle, 'id' | 'ownerUserId'>) => {
+      if (internalVehicle) {
+        onUpdateVehicle({ ...internalVehicle, ...vehicleData });
+      } else {
+        onAddVehicle(vehicleData);
+      }
+    };
 
-  const handleAnnounceSale = () => {
-    if (!internalVehicle) return;
-    onUpdateVehicle({ ...internalVehicle, forSale: true });
-    toast({
-      title: 'Veículo Anunciado',
-      description: `O veículo ${internalVehicle.placa} agora está listado para venda.`,
-    });
-  };
+    const handleSold = (saleInfo: Sale) => {
+      if (!internalVehicle) return;
+      onUpdateVehicle({
+        ...internalVehicle,
+        status: 'vendido',
+        vendaInfo: saleInfo,
+        forSale: false,
+      });
+    };
 
-  const handleCancelAnnouncement = () => {
-    if (!internalVehicle) return;
-    onUpdateVehicle({ ...internalVehicle, forSale: false });
-    toast({
-      title: 'Anúncio Removido',
-      description: `O veículo ${internalVehicle.placa} não está mais listado para venda.`,
-    });
-  };
+    const handleAnnounceSale = () => {
+      if (!internalVehicle) return;
+      onUpdateVehicle({ ...internalVehicle, forSale: true });
+      toast({
+        title: 'Veículo Anunciado',
+        description: `O veículo ${internalVehicle.placa} agora está listado para venda.`,
+      });
+    };
 
-  const handleMarkAsLicensed = () => {
-    if (!internalVehicle) return;
-    const newDueDate = getLicensingInfo(
-      internalVehicle.placa,
-      new Date().getFullYear() + 1
-    ).dueDate.toISOString().split('T')[0];
+    const handleCancelAnnouncement = () => {
+      if (!internalVehicle) return;
+      onUpdateVehicle({ ...internalVehicle, forSale: false });
+      toast({
+        title: 'Anúncio Removido',
+        description: `O veículo ${internalVehicle.placa} não está mais listado para venda.`,
+      });
+    };
 
-    onUpdateVehicle({ ...internalVehicle, licenciamento: newDueDate });
+    const handleMarkAsLicensed = () => {
+      if (!internalVehicle) return;
+      const newDueDate = getLicensingInfo(
+        internalVehicle.placa,
+        new Date().getFullYear() + 1
+      ).dueDate.toISOString().split('T')[0];
 
-    toast({
-      title: 'Licenciamento Atualizado',
-      description: `Veículo ${internalVehicle.placa} regularizado até ${new Date(
-        newDueDate
-      ).toLocaleDateString('pt-BR')}.`,
-    });
-  };
+      onUpdateVehicle({ ...internalVehicle, licenciamento: newDueDate });
 
-  const sortedMaintenances = useMemo(() => {
-    if (!internalVehicle?.maintenances) return [];
-    return sortMaintenances(internalVehicle.maintenances);
-  }, [internalVehicle?.maintenances]);
+      toast({
+        title: 'Licenciamento Atualizado',
+        description: `Veículo ${internalVehicle.placa} regularizado até ${new Date(
+          newDueDate
+        ).toLocaleDateString('pt-BR')}.`,
+      });
+    };
 
-  const generatePDF = () => {
-    if (!internalVehicle) return;
+    const sortedMaintenances = useMemo<Maintenance[]>(() => {
+      if (!internalVehicle?.maintenances) return [];
+      return sortMaintenances(internalVehicle.maintenances);
+    }, [internalVehicle?.maintenances]);
 
-    const doc = new jsPDF();
-    const company = COMPANIES[internalVehicle.empresa];
+    const generatePDF = () => {
+      if (!internalVehicle) return;
 
-    doc.setFontSize(18);
-    doc.text(`Ficha do Veículo - ${company.name}`, 14, 22);
-    doc.setFontSize(11);
-    doc.setTextColor(100);
+      const doc = new jsPDF();
+      const company = COMPANIES[internalVehicle.empresa];
 
-    const vehicleDetails = [
-      ['Placa', internalVehicle.placa],
-      ['Modelo', internalVehicle.modelo],
-      ['Grupo/Cliente', internalVehicle.cliente],
-      ['Ano/Modelo', internalVehicle.anoModelo || 'N/A'],
-      ['Renavam', internalVehicle.renavam || 'N/A'],
-      ['Chassi', internalVehicle.chassi || 'N/A'],
-      [
-        'Data da Compra',
-        internalVehicle.dataEntrada
-          ? new Date(internalVehicle.dataEntrada).toLocaleDateString('pt-BR', {
+      doc.setFontSize(18);
+      doc.text(`Ficha do Veículo - ${company.name}`, 14, 22);
+      doc.setFontSize(11);
+      doc.setTextColor(100);
+
+      const vehicleDetails = [
+        ['Placa', internalVehicle.placa],
+        ['Modelo', internalVehicle.modelo],
+        ['Grupo/Cliente', internalVehicle.cliente],
+        ['Ano/Modelo', internalVehicle.anoModelo || 'N/A'],
+        ['Renavam', internalVehicle.renavam || 'N/A'],
+        ['Chassi', internalVehicle.chassi || 'N/A'],
+        [
+          'Data da Compra',
+          internalVehicle.dataEntrada
+            ? new Date(internalVehicle.dataEntrada).toLocaleDateString('pt-BR', {
               timeZone: 'UTC',
             })
-          : 'N/A',
-      ],
-      ['Valor de Compra', formatCurrency(internalVehicle.valorCompra)],
-    ];
+            : 'N/A',
+        ],
+        ['Valor de Compra', formatCurrency(internalVehicle.valorCompra)],
+      ];
 
-    (doc as any).autoTable({
-      startY: 30,
-      head: [['Campo', 'Valor']],
-      body: vehicleDetails,
-      theme: 'striped',
-      headStyles: { fillColor: [30, 58, 138] },
-    });
+      (doc as any).autoTable({
+        startY: 30,
+        head: [['Campo', 'Valor']],
+        body: vehicleDetails,
+        theme: 'striped',
+        headStyles: { fillColor: [30, 58, 138] },
+      });
 
-    if (internalVehicle.observacao) {
-      doc.setFontSize(12);
-      doc.text('Observações', 14, (doc as any).lastAutoTable.finalY + 15);
-      doc.setFontSize(10);
-      const splitText = doc.splitTextToSize(internalVehicle.observacao, 180);
-      doc.text(splitText, 14, (doc as any).lastAutoTable.finalY + 22);
-    }
-
-    if (sortedMaintenances.length > 0) {
-      doc.addPage();
-      doc.setFontSize(18);
-      doc.text('Histórico de Manutenção', 14, 22);
-
-      sortedMaintenances.forEach((maint, index) => {
-        const startY = index === 0 ? 30 : (doc as any).lastAutoTable.finalY + 15;
-
+      if (internalVehicle.observacao) {
         doc.setFontSize(12);
-        doc.text(`Manutenção #${index + 1}`, 14, startY);
+        doc.text('Observações', 14, (doc as any).lastAutoTable.finalY + 15);
+        doc.setFontSize(10);
+        const splitText = doc.splitTextToSize(internalVehicle.observacao, 180);
+        doc.text(splitText, 14, (doc as any).lastAutoTable.finalY + 22);
+      }
 
-        const maintSummary = [
-          ['Data', formatMaintenanceDate(maint.data)],
-          ['KM', maint.km.toLocaleString('pt-BR')],
-          ['Fornecedor', maint.fornecedor],
-          ['Custo Total', formatCurrency(maint.total)],
-        ];
+      if (sortedMaintenances.length > 0) {
+        doc.addPage();
+        doc.setFontSize(18);
+        doc.text('Histórico de Manutenção', 14, 22);
 
-        (doc as any).autoTable({
-          startY: startY + 5,
-          head: [['', '']],
-          body: maintSummary,
-          theme: 'plain',
-          styles: { cellPadding: 1 },
-        });
+        sortedMaintenances.forEach((maint: Maintenance, index: number) => {
+          const startY = index === 0 ? 30 : (doc as any).lastAutoTable.finalY + 15;
 
-        const itemsBody = maint.items.map((item) => [
-          item.descricao,
-          formatCurrency(item.valor),
-        ]);
+          doc.setFontSize(12);
+          doc.text(`Manutenção #${index + 1}`, 14, startY);
 
-        (doc as any).autoTable({
-          startY: (doc as any).lastAutoTable.finalY + 2,
-          head: [['Item', 'Valor']],
-          body: itemsBody,
-          theme: 'grid',
-          headStyles: { fillColor: [100, 116, 139] },
-        });
-      });
-    }
+          const maintSummary = [
+            ['Data', formatMaintenanceDate(maint.data)],
+            ['KM', maint.km.toLocaleString('pt-BR')],
+            ['Fornecedor', maint.fornecedor],
+            ['Custo Total', formatCurrency(maint.total)],
+          ];
 
-    doc.save(`Ficha_Veiculo_${internalVehicle.placa}.pdf`);
-  };
-
-  const handleFileUpload = async (file: File) => {
-    if (!file || !internalVehicle) return;
-
-    setIsAiLoading(true);
-
-    try {
-      const storagePath = `maintenance-files/${internalVehicle.id}/${Date.now()}-${file.name}`;
-      const storageRef = ref(storage, storagePath);
-
-      await uploadBytes(storageRef, file);
-      const downloadUrl = await getDownloadURL(storageRef);
-
-      setUploadedMaintenanceFileUrl(downloadUrl);
-      setUploadedMaintenanceFileName(file.name);
-
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-
-      reader.onload = async () => {
-        const base64 = reader.result as string;
-        const result = await extractMaintenanceDataAction(base64);
-
-        if (result.success && result.data) {
-          const data = result.data;
-
-          if (data.date) setMaintDate(normalizeDateForInput(data.date));
-          if (data.km) setMaintKm(data.km.toString());
-          if (data.fornecedor) setMaintFornecedor(data.fornecedor);
-          if (data.items) setNewMaintItems(data.items);
-
-          toast({
-            title: 'Dados Extraídos!',
-            description: 'Nota fiscal lida com sucesso pela IA e arquivo anexado.',
+          (doc as any).autoTable({
+            startY: startY + 5,
+            head: [['', '']],
+            body: maintSummary,
+            theme: 'plain',
+            styles: { cellPadding: 1 },
           });
-        } else {
-          toast({
-            variant: 'destructive',
-            title: 'Erro de Leitura',
-            description: result.error,
+
+          const itemsBody = maint.items.map((item) => [
+            item.descricao,
+            formatCurrency(item.valor),
+          ]);
+
+          (doc as any).autoTable({
+            startY: (doc as any).lastAutoTable.finalY + 2,
+            head: [['Item', 'Valor']],
+            body: itemsBody,
+            theme: 'grid',
+            headStyles: { fillColor: [100, 116, 139] },
           });
+        });
+      }
+
+      doc.save(`Ficha_Veiculo_${internalVehicle.placa}.pdf`);
+    };
+
+    const handleFileUpload = async (file: File) => {
+      if (!file || !internalVehicle) return;
+
+      setIsAiLoading(true);
+
+      try {
+        // 1. Converte o arquivo para Base64 e chama a IA PRIMEIRO
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+
+        reader.onload = async () => {
+          try {
+            const base64 = reader.result as string;
+
+            // Chama a Server Action do Gemini
+            const result = await extractMaintenanceDataAction(base64);
+
+            if (result.success && result.data) {
+              const data = result.data;
+
+              if (data.date) setMaintDate(normalizeDateForInput(data.date));
+              if (data.km) setMaintKm(data.km.toString());
+              if (data.fornecedor) setMaintFornecedor(data.fornecedor);
+              if (data.items) setNewMaintItems(data.items);
+            }
+          } catch (aiError) {
+            console.error('Erro na extração com IA:', aiError);
+            toast({
+              variant: 'destructive',
+              title: 'Erro na leitura',
+              description: 'Não foi possível extrair os dados com a IA.',
+            });
+          } finally {
+            setIsAiLoading(false);
+          }
+        };
+
+        // 2. Upload para o Firebase Storage em segundo plano (Opcional)
+        try {
+          const storagePath = `maintenance-files/${internalVehicle.id}/${Date.now()}-${file.name}`;
+          const storageRef = ref(storage, storagePath);
+          await uploadBytes(storageRef, file);
+          const downloadUrl = await getDownloadURL(storageRef);
+
+          setUploadedMaintenanceFileUrl(downloadUrl);
+          setUploadedMaintenanceFileName(file.name);
+        } catch (storageErr) {
+          console.warn('Storage não configurado, pulando upload do arquivo físico:', storageErr);
         }
-
+      } catch (error) {
+        console.error('Erro geral no envio:', error);
+        toast({
+          variant: 'destructive',
+          title: 'Erro no upload',
+          description: 'Ocorreu uma falha ao processar o arquivo.',
+        });
         setIsAiLoading(false);
+      }
+    };
+
+    const handleAddItem = () => {
+      if (!newItemDesc.trim()) return;
+
+      setNewMaintItems([
+        ...newMaintItems,
+        {
+          descricao: newItemDesc,
+          valor: parseFloat(newItemValue) || 0,
+        },
+      ]);
+
+      setNewItemDesc('');
+      setNewItemValue('');
+    };
+
+    const handleRemoveItem = (indexToRemove: number) => {
+      setNewMaintItems((current) =>
+        current.filter((_, index) => index !== indexToRemove)
+      );
+    };
+
+    const handleEditMaintenance = (maintenance: Maintenance) => {
+      setEditingMaintenanceId(maintenance.id);
+      setMaintDate(normalizeDateForInput(maintenance.data));
+      setMaintKm(String(maintenance.km));
+      setMaintFornecedor(maintenance.fornecedor);
+      setNewMaintItems(maintenance.items || []);
+      setUploadedMaintenanceFileUrl(maintenance.arquivoUrl || '');
+      setUploadedMaintenanceFileName(maintenance.arquivoNome || '');
+
+      toast({
+        title: 'Edição iniciada',
+        description: 'Os dados da manutenção foram carregados no formulário.',
+      });
+    };
+
+    const handleDeleteMaintenance = (maintenanceId: string) => {
+      if (!internalVehicle) return;
+
+      const updatedMaintenances = sortMaintenances(
+        (internalVehicle.maintenances || []).filter((m) => m.id !== maintenanceId)
+      );
+
+      const highestKm =
+        updatedMaintenances.length > 0
+          ? Math.max(...updatedMaintenances.map((m) => m.km || 0))
+          : 0;
+
+      const updatedVehicle: Vehicle = {
+        ...internalVehicle,
+        maintenances: updatedMaintenances,
+        kmAtual: highestKm > 0 ? highestKm : internalVehicle.kmAtual,
       };
-    } catch (error) {
-      console.error('Erro ao enviar arquivo:', error);
+
+      setInternalVehicle(updatedVehicle);
+      onUpdateVehicle(updatedVehicle);
+
+      if (editingMaintenanceId === maintenanceId) {
+        resetForm();
+      }
+
       toast({
-        variant: 'destructive',
-        title: 'Erro no upload',
-        description: 'Não foi possível enviar o arquivo para o Storage.',
+        title: 'Manutenção removida',
+        description: 'O lançamento foi excluído com sucesso.',
       });
-      setIsAiLoading(false);
-    }
-  };
-
-  const handleAddItem = () => {
-    if (!newItemDesc.trim()) return;
-
-    setNewMaintItems([
-      ...newMaintItems,
-      {
-        descricao: newItemDesc,
-        valor: parseFloat(newItemValue) || 0,
-      },
-    ]);
-
-    setNewItemDesc('');
-    setNewItemValue('');
-  };
-
-  const handleRemoveItem = (indexToRemove: number) => {
-    setNewMaintItems((current) =>
-      current.filter((_, index) => index !== indexToRemove)
-    );
-  };
-
-  const handleEditMaintenance = (maintenance: Maintenance) => {
-    setEditingMaintenanceId(maintenance.id);
-    setMaintDate(normalizeDateForInput(maintenance.data));
-    setMaintKm(String(maintenance.km));
-    setMaintFornecedor(maintenance.fornecedor);
-    setNewMaintItems(maintenance.items || []);
-    setUploadedMaintenanceFileUrl(maintenance.arquivoUrl || '');
-    setUploadedMaintenanceFileName(maintenance.arquivoNome || '');
-
-    toast({
-      title: 'Edição iniciada',
-      description: 'Os dados da manutenção foram carregados no formulário.',
-    });
-  };
-
-  const handleDeleteMaintenance = (maintenanceId: string) => {
-    if (!internalVehicle) return;
-
-    const updatedMaintenances = sortMaintenances(
-      (internalVehicle.maintenances || []).filter((m) => m.id !== maintenanceId)
-    );
-
-    const highestKm =
-      updatedMaintenances.length > 0
-        ? Math.max(...updatedMaintenances.map((m) => m.km || 0))
-        : 0;
-
-    const updatedVehicle: Vehicle = {
-      ...internalVehicle,
-      maintenances: updatedMaintenances,
-      kmAtual: highestKm > 0 ? highestKm : internalVehicle.kmAtual,
     };
 
-    setInternalVehicle(updatedVehicle);
-    onUpdateVehicle(updatedVehicle);
+    const handleSaveMaintenance = () => {
+      if (
+        !internalVehicle ||
+        !maintDate ||
+        !maintKm ||
+        !maintFornecedor ||
+        newMaintItems.length === 0
+      ) {
+        toast({
+          variant: 'destructive',
+          title: 'Campos obrigatórios',
+          description: 'Data, KM, Fornecedor e ao menos um item são necessários.',
+        });
+        return;
+      }
 
-    if (editingMaintenanceId === maintenanceId) {
-      resetForm();
-    }
+      const maintenanceData: Maintenance = {
+        id:
+          editingMaintenanceId ||
+          `maint-${internalVehicle.id}-${Date.now()}-${Math.random()
+            .toString(36)
+            .slice(2)}`,
+        data: maintDate,
+        km: parseInt(maintKm, 10),
+        fornecedor: maintFornecedor,
+        items: newMaintItems,
+        total: newMaintItems.reduce((acc, item) => acc + item.valor, 0),
+        arquivoUrl: uploadedMaintenanceFileUrl || undefined,
+        arquivoNome: uploadedMaintenanceFileName || undefined,
+      };
 
-    toast({
-      title: 'Manutenção removida',
-      description: 'O lançamento foi excluído com sucesso.',
-    });
-  };
-
-  const handleSaveMaintenance = () => {
-    if (
-      !internalVehicle ||
-      !maintDate ||
-      !maintKm ||
-      !maintFornecedor ||
-      newMaintItems.length === 0
-    ) {
-      toast({
-        variant: 'destructive',
-        title: 'Campos obrigatórios',
-        description: 'Data, KM, Fornecedor e ao menos um item são necessários.',
-      });
-      return;
-    }
-
-    const maintenanceData: Maintenance = {
-      id:
-        editingMaintenanceId ||
-        `maint-${internalVehicle.id}-${Date.now()}-${Math.random()
-          .toString(36)
-          .slice(2)}`,
-      data: maintDate,
-      km: parseInt(maintKm, 10),
-      fornecedor: maintFornecedor,
-      items: newMaintItems,
-      total: newMaintItems.reduce((acc, item) => acc + item.valor, 0),
-      arquivoUrl: uploadedMaintenanceFileUrl || undefined,
-      arquivoNome: uploadedMaintenanceFileName || undefined,
-    };
-
-    const baseMaintenances = editingMaintenanceId
-      ? (internalVehicle.maintenances || []).map((m) =>
+      const baseMaintenances = editingMaintenanceId
+        ? (internalVehicle.maintenances || []).map((m) =>
           m.id === editingMaintenanceId ? maintenanceData : m
         )
-      : [...(internalVehicle.maintenances || []), maintenanceData];
+        : [...(internalVehicle.maintenances || []), maintenanceData];
 
-    const updatedMaintenances = sortMaintenances(baseMaintenances);
+      const updatedMaintenances = sortMaintenances(baseMaintenances);
 
-    const updatedVehicle: Vehicle = {
-      ...internalVehicle,
-      kmAtual: Math.max(internalVehicle.kmAtual || 0, parseInt(maintKm, 10)),
-      maintenances: updatedMaintenances,
+      const updatedVehicle: Vehicle = {
+        ...internalVehicle,
+        kmAtual: Math.max(internalVehicle.kmAtual || 0, parseInt(maintKm, 10)),
+        maintenances: updatedMaintenances,
+      };
+
+      setInternalVehicle(updatedVehicle);
+      onUpdateVehicle(updatedVehicle);
+
+      toast({
+        title: editingMaintenanceId ? 'Manutenção atualizada' : 'Manutenção salva',
+        description: editingMaintenanceId
+          ? 'O lançamento foi alterado com sucesso.'
+          : 'O histórico do veículo foi atualizado.',
+      });
+
+      resetForm();
     };
 
-    setInternalVehicle(updatedVehicle);
-    onUpdateVehicle(updatedVehicle);
+    const handleAiAnalysis = async () => {
+      if (
+        !internalVehicle ||
+        !internalVehicle.maintenances ||
+        internalVehicle.maintenances.length === 0
+      ) {
+        toast({
+          title: 'Sem dados',
+          description: 'Não há histórico de manutenção para analisar.',
+        });
+        return;
+      }
 
-    toast({
-      title: editingMaintenanceId ? 'Manutenção atualizada' : 'Manutenção salva',
-      description: editingMaintenanceId
-        ? 'O lançamento foi alterado com sucesso.'
-        : 'O histórico do veículo foi atualizado.',
-    });
+      setIsAiAnalysisLoading(true);
+      setAiAnalysisResult(null);
 
-    resetForm();
-  };
-
-  const handleAiAnalysis = async () => {
-    if (
-      !internalVehicle ||
-      !internalVehicle.maintenances ||
-      internalVehicle.maintenances.length === 0
-    ) {
-      toast({
-        title: 'Sem dados',
-        description: 'Não há histórico de manutenção para analisar.',
-      });
-      return;
-    }
-
-    setIsAiAnalysisLoading(true);
-    setAiAnalysisResult(null);
-
-    const result = await analyzeMaintenanceHistoryAction({
-      vehicleModel: internalVehicle.modelo,
-      maintenances: internalVehicle.maintenances.map((m) => ({
-        data: m.data,
-        km: m.km,
-        total: m.total,
-        items: m.items.map((i) => ({
-          descricao: i.descricao,
-          valor: i.valor,
+      const result = await analyzeMaintenanceHistoryAction({
+        vehicleModel: internalVehicle.modelo,
+        maintenances: internalVehicle.maintenances.map((m) => ({
+          data: m.data,
+          km: m.km,
+          total: m.total,
+          items: m.items.map((i) => ({
+            descricao: i.descricao,
+            valor: i.valor,
+          })),
         })),
-      })),
-    });
-
-    if (result.success && result.analysis) {
-      setAiAnalysisResult(result.analysis);
-    } else {
-      toast({
-        variant: 'destructive',
-        title: 'Erro na Análise',
-        description: result.error,
       });
-    }
 
-    setIsAiAnalysisLoading(false);
-  };
+      if (result.success && result.analysis) {
+        setAiAnalysisResult(result.analysis);
+      } else {
+        toast({
+          variant: 'destructive',
+          title: 'Erro na Análise',
+          description: result.error,
+        });
+      }
 
-  const newMaintenanceTotal = useMemo(
-    () => newMaintItems.reduce((sum, item) => sum + item.valor, 0),
-    [newMaintItems]
-  );
+      setIsAiAnalysisLoading(false);
+    };
 
-  const licensingInfo = useMemo(() => {
-    if (!internalVehicle) return null;
-    const dateToCheck = internalVehicle.licenciamento
-      ? new Date(internalVehicle.licenciamento)
-      : undefined;
-    return getLicensingInfo(internalVehicle.placa, dateToCheck?.getUTCFullYear());
-  }, [internalVehicle]);
+    const newMaintenanceTotal = useMemo(
+      () => newMaintItems.reduce((sum, item) => sum + item.valor, 0),
+      [newMaintItems]
+    );
 
-  if (!internalVehicle || !licensingInfo) return null;
+    const licensingInfo = useMemo(() => {
+      if (!internalVehicle) return null;
+      const dateToCheck = internalVehicle.licenciamento
+        ? new Date(internalVehicle.licenciamento)
+        : undefined;
+      return getLicensingInfo(internalVehicle.placa, dateToCheck?.getUTCFullYear());
+    }, [internalVehicle]);
 
-  const isSold = internalVehicle.status === 'vendido';
-  const companyTheme = COMPANIES[companyId].theme.primary;
+    if (!internalVehicle || !licensingInfo) return null;
 
-  const getStatusColor = () => {
-    switch (licensingInfo.status) {
-      case 'vencido':
-        return 'text-red-500';
-      case 'alerta':
-        return 'text-yellow-500';
-      default:
-        return 'text-green-500';
-    }
-  };
+    const isSold = internalVehicle.status === 'vendido';
+    const companyTheme = COMPANIES[companyId].theme.primary;
 
-  return (
-    <>
-      <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogContent className="max-w-5xl max-h-[95vh] flex flex-col p-0">
-          <DialogHeader className="p-6 border-b bg-muted/50 rounded-t-lg">
-            <DialogTitle className="font-headline text-2xl">
-              Ficha do Veículo
-            </DialogTitle>
-            <DialogDescription>
-              {internalVehicle.placa} - {internalVehicle.modelo}
-            </DialogDescription>
-          </DialogHeader>
+    const getStatusColor = () => {
+      switch (licensingInfo.status) {
+        case 'vencido':
+          return 'text-red-500';
+        case 'alerta':
+          return 'text-yellow-500';
+        default:
+          return 'text-green-500';
+      }
+    };
 
-          <div className="flex-grow overflow-y-auto">
-            <Tabs defaultValue="details" className="p-6">
-              <div className="flex justify-between items-start">
-                <TabsList>
-                  <TabsTrigger value="details">Detalhes</TabsTrigger>
-                  <TabsTrigger value="maintenance">Manutenção</TabsTrigger>
-                  <TabsTrigger value="licensing">Licenciamento</TabsTrigger>
-                </TabsList>
+    return (
+      <>
+        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+          <DialogContent className="max-w-5xl max-h-[95vh] flex flex-col p-0">
+            <DialogHeader className="p-6 border-b bg-muted/50 rounded-t-lg">
+              <DialogTitle className="font-headline text-2xl">
+                Ficha do Veículo
+              </DialogTitle>
+              <DialogDescription>
+                {internalVehicle.placa} - {internalVehicle.modelo}
+              </DialogDescription>
+            </DialogHeader>
 
-                <div className="flex flex-wrap justify-end mb-6 gap-2">
-                  {!isSold && (
-                    <Button variant="outline" size="sm" onClick={handleMoveCompany}>
-                      <Building className="h-4 w-4 mr-2" />
-                      Mover para {otherCompany}
+            <div className="flex-grow overflow-y-auto">
+              <Tabs defaultValue="details" className="p-6">
+                <div className="flex justify-between items-start">
+                  <TabsList>
+                    <TabsTrigger value="details">Detalhes</TabsTrigger>
+                    <TabsTrigger value="maintenance">Manutenção</TabsTrigger>
+                    <TabsTrigger value="licensing">Licenciamento</TabsTrigger>
+                  </TabsList>
+
+                  <div className="flex flex-wrap justify-end mb-6 gap-2">
+                    {!isSold && (
+                      <Button variant="outline" size="sm" onClick={handleMoveCompany}>
+                        <Building className="h-4 w-4 mr-2" />
+                        Mover para {otherCompany}
+                      </Button>
+                    )}
+
+                    {!isSold && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setTransferGroupModalOpen(true)}
+                      >
+                        <ArrowRightLeft className="h-4 w-4 mr-2" />
+                        Transferir Grupo
+                      </Button>
+                    )}
+
+                    {!isSold && (
+                      <Button variant="outline" size="sm" onClick={handleEditClick}>
+                        <Pencil className="h-4 w-4 mr-2" />
+                        Editar
+                      </Button>
+                    )}
+
+                    {!isSold && !internalVehicle.forSale && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="border-cyan-500 text-cyan-600 hover:bg-cyan-50 hover:text-cyan-700"
+                        onClick={handleAnnounceSale}
+                      >
+                        <Tag className="h-4 w-4 mr-2" />
+                        Anunciar Venda
+                      </Button>
+                    )}
+
+                    {!isSold && internalVehicle.forSale && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="border-rose-500 text-rose-600 hover:bg-rose-50 hover:text-rose-700"
+                        onClick={handleCancelAnnouncement}
+                      >
+                        <XCircle className="h-4 w-4 mr-2" />
+                        Remover Anúncio
+                      </Button>
+                    )}
+
+                    {!isSold && internalVehicle.forSale && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="border-orange-500 text-orange-600 hover:bg-orange-50 hover:text-orange-700"
+                        onClick={handleSellClick}
+                      >
+                        <Handshake className="h-4 w-4 mr-2" />
+                        Registrar Venda
+                      </Button>
+                    )}
+
+                    {isSold && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="border-red-500 text-red-600 hover:bg-red-50 hover:text-red-700"
+                        onClick={handleCancelSale}
+                      >
+                        <Undo2 className="h-4 w-4 mr-2" />
+                        Cancelar Venda
+                      </Button>
+                    )}
+
+                    {isSold && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="border-yellow-500 text-yellow-600 hover:bg-yellow-50 hover:text-yellow-700"
+                        onClick={handleEditClick}
+                      >
+                        <Edit className="h-4 w-4 mr-2" />
+                        Editar Venda
+                      </Button>
+                    )}
+
+                    <Button variant="outline" size="sm" onClick={generatePDF}>
+                      <FileText className="h-4 w-4 mr-2 text-red-500" />
+                      PDF
                     </Button>
-                  )}
-
-                  {!isSold && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setTransferGroupModalOpen(true)}
-                    >
-                      <ArrowRightLeft className="h-4 w-4 mr-2" />
-                      Transferir Grupo
-                    </Button>
-                  )}
-
-                  {!isSold && (
-                    <Button variant="outline" size="sm" onClick={handleEditClick}>
-                      <Pencil className="h-4 w-4 mr-2" />
-                      Editar
-                    </Button>
-                  )}
-
-                  {!isSold && !internalVehicle.forSale && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="border-cyan-500 text-cyan-600 hover:bg-cyan-50 hover:text-cyan-700"
-                      onClick={handleAnnounceSale}
-                    >
-                      <Tag className="h-4 w-4 mr-2" />
-                      Anunciar Venda
-                    </Button>
-                  )}
-
-                  {!isSold && internalVehicle.forSale && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="border-rose-500 text-rose-600 hover:bg-rose-50 hover:text-rose-700"
-                      onClick={handleCancelAnnouncement}
-                    >
-                      <XCircle className="h-4 w-4 mr-2" />
-                      Remover Anúncio
-                    </Button>
-                  )}
-
-                  {!isSold && internalVehicle.forSale && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="border-orange-500 text-orange-600 hover:bg-orange-50 hover:text-orange-700"
-                      onClick={handleSellClick}
-                    >
-                      <Handshake className="h-4 w-4 mr-2" />
-                      Registrar Venda
-                    </Button>
-                  )}
-
-                  {isSold && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="border-red-500 text-red-600 hover:bg-red-50 hover:text-red-700"
-                      onClick={handleCancelSale}
-                    >
-                      <Undo2 className="h-4 w-4 mr-2" />
-                      Cancelar Venda
-                    </Button>
-                  )}
-
-                  {isSold && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="border-yellow-500 text-yellow-600 hover:bg-yellow-50 hover:text-yellow-700"
-                      onClick={handleEditClick}
-                    >
-                      <Edit className="h-4 w-4 mr-2" />
-                      Editar Venda
-                    </Button>
-                  )}
-
-                  <Button variant="outline" size="sm" onClick={generatePDF}>
-                    <FileText className="h-4 w-4 mr-2 text-red-500" />
-                    PDF
-                  </Button>
+                  </div>
                 </div>
-              </div>
 
-              <TabsContent value="details">
-                <Card className="bg-muted/30 mb-8">
-                  <CardContent className="p-6 grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-6">
-                    <div className="font-medium">
-                      <p className="text-xs text-muted-foreground">Placa</p>
-                      <p>{internalVehicle.placa}</p>
-                    </div>
+                <TabsContent value="details">
+                  <Card className="bg-muted/30 mb-8">
+                    <CardContent className="p-6 grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-6">
+                      <div className="font-medium">
+                        <p className="text-xs text-muted-foreground">Placa</p>
+                        <p>{internalVehicle.placa}</p>
+                      </div>
 
-                    <div className="font-medium">
-                      <p className="text-xs text-muted-foreground">Modelo</p>
-                      <p>{internalVehicle.modelo}</p>
-                    </div>
+                      <div className="font-medium">
+                        <p className="text-xs text-muted-foreground">Modelo</p>
+                        <p>{internalVehicle.modelo}</p>
+                      </div>
 
-                    <div className="font-medium">
-                      <p className="text-xs text-muted-foreground">Grupo</p>
-                      <p>{internalVehicle.cliente}</p>
-                    </div>
+                      <div className="font-medium">
+                        <p className="text-xs text-muted-foreground">Grupo</p>
+                        <p>{internalVehicle.cliente}</p>
+                      </div>
 
-                    <div className="font-medium">
-                      <p className="text-xs text-muted-foreground">Valor de Compra</p>
-                      <p>{formatCurrency(internalVehicle.valorCompra)}</p>
-                    </div>
+                      <div className="font-medium">
+                        <p className="text-xs text-muted-foreground">Valor de Compra</p>
+                        <p>{formatCurrency(internalVehicle.valorCompra)}</p>
+                      </div>
 
-                    <div className="font-medium">
-                      <p className="text-xs text-muted-foreground">Data da Compra</p>
-                      <p>
-                        {internalVehicle.dataEntrada
-                          ? new Date(internalVehicle.dataEntrada).toLocaleDateString(
+                      <div className="font-medium">
+                        <p className="text-xs text-muted-foreground">Data da Compra</p>
+                        <p>
+                          {internalVehicle.dataEntrada
+                            ? new Date(internalVehicle.dataEntrada).toLocaleDateString(
                               'pt-BR',
                               { timeZone: 'UTC' }
                             )
-                          : 'N/A'}
-                      </p>
-                    </div>
-
-                    <div className="font-medium">
-                      <p className="text-xs text-muted-foreground">Ano/Modelo</p>
-                      <p>{internalVehicle.anoModelo}</p>
-                    </div>
-
-                    <div className="font-medium">
-                      <p className="text-xs text-muted-foreground">KM Atual</p>
-                      <p>{internalVehicle.kmAtual?.toLocaleString('pt-BR') || 'N/A'}</p>
-                    </div>
-
-                    <div className="font-medium">
-                      <p className="text-xs text-muted-foreground">Renavam</p>
-                      <p>{internalVehicle.renavam || 'N/A'}</p>
-                    </div>
-
-                    {internalVehicle.chassi && (
-                      <div className="font-medium col-span-2">
-                        <p className="text-xs text-muted-foreground">Chassi</p>
-                        <p>{internalVehicle.chassi}</p>
+                            : 'N/A'}
+                        </p>
                       </div>
-                    )}
 
-                    {isSold && internalVehicle.vendaInfo && (
-                      <>
-                        <div className="font-medium text-green-600">
-                          <p className="text-xs text-muted-foreground">Data da Venda</p>
-                          <p>
-                            {new Date(
-                              internalVehicle.vendaInfo.dataVenda
-                            ).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}
-                          </p>
-                        </div>
+                      <div className="font-medium">
+                        <p className="text-xs text-muted-foreground">Ano/Modelo</p>
+                        <p>{internalVehicle.anoModelo}</p>
+                      </div>
 
-                        <div className="font-medium text-green-600">
-                          <p className="text-xs text-muted-foreground">Valor da Venda</p>
-                          <p>{formatCurrency(internalVehicle.vendaInfo.valorVenda)}</p>
-                        </div>
+                      <div className="font-medium">
+                        <p className="text-xs text-muted-foreground">KM Atual</p>
+                        <p>{internalVehicle.kmAtual?.toLocaleString('pt-BR') || 'N/A'}</p>
+                      </div>
 
+                      <div className="font-medium">
+                        <p className="text-xs text-muted-foreground">Renavam</p>
+                        <p>{internalVehicle.renavam || 'N/A'}</p>
+                      </div>
+
+                      {internalVehicle.chassi && (
                         <div className="font-medium col-span-2">
-                          <p className="text-xs text-muted-foreground">Comprador</p>
-                          <p>{internalVehicle.vendaInfo.comprador}</p>
+                          <p className="text-xs text-muted-foreground">Chassi</p>
+                          <p>{internalVehicle.chassi}</p>
                         </div>
-                      </>
-                    )}
-
-                    {internalVehicle.observacao && (
-                      <div className="font-medium col-span-full">
-                        <p className="text-xs text-muted-foreground flex items-center gap-1">
-                          <MessageSquareText className="h-3 w-3" />
-                          Observação
-                        </p>
-                        <p className="text-sm whitespace-pre-wrap">
-                          {internalVehicle.observacao}
-                        </p>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-
-                <h3 className="text-lg font-bold font-headline mb-4">
-                  Histórico Completo (Excel Style)
-                </h3>
-
-                <ScrollArea className="h-64 border rounded-lg">
-                  <div className="space-y-3 p-4">
-                    {sortedMaintenances.length > 0 ? (
-                      sortedMaintenances.map((m) => (
-                        <div
-                          key={m.id}
-                          className="text-sm bg-muted/30 p-3 rounded-lg border-l-4 border-primary"
-                        >
-                          <div className="flex justify-between items-start gap-4 mb-1">
-                            <div>
-                              <div className="font-bold">
-                                <span>
-                                  {formatMaintenanceDate(m.data)} - {m.fornecedor}
-                                </span>
-                              </div>
-
-                              <p className="text-xs text-muted-foreground mt-1">
-                                KM: {m.km.toLocaleString('pt-BR')}
-                              </p>
-                            </div>
-
-                            <div className="flex items-center gap-2">
-                              <Badge
-                                variant={m.total > 500 ? 'destructive' : 'secondary'}
-                              >
-                                {formatCurrency(m.total)}
-                              </Badge>
-
-                              {!isSold && (
-                                <>
-                                  <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="icon"
-                                    className="h-8 w-8"
-                                    onClick={() => handleEditMaintenance(m)}
-                                  >
-                                    <Pencil className="h-4 w-4" />
-                                  </Button>
-
-                                  <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="icon"
-                                    className="h-8 w-8 text-red-600 border-red-200 hover:bg-red-50"
-                                    onClick={() => setMaintenanceToDelete(m)}
-                                  >
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
-                                </>
-                              )}
-                            </div>
-                          </div>
-
-                          <ul className="list-disc ml-4 text-xs text-muted-foreground mt-2">
-                            {m.items.map((item, i) => (
-                              <li key={i}>
-                                {item.descricao} ({formatCurrency(item.valor)})
-                              </li>
-                            ))}
-                          </ul>
-
-                          {m.arquivoUrl && (
-                            <div className="mt-3">
-                              <a
-                                href={m.arquivoUrl}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="inline-flex items-center gap-2 text-xs text-blue-600 hover:underline"
-                              >
-                                <Link2 className="h-3 w-3" />
-                                {m.arquivoNome || 'Abrir anexo'}
-                              </a>
-                            </div>
-                          )}
-                        </div>
-                      ))
-                    ) : (
-                      <p className="text-center text-muted-foreground text-sm py-8">
-                        Sem histórico de manutenção.
-                      </p>
-                    )}
-                  </div>
-                </ScrollArea>
-              </TabsContent>
-
-              <TabsContent value="maintenance">
-                {!isSold && (
-                  <div className="flex flex-col lg:flex-row gap-6">
-                    <div className="lg:w-1/3">
-                      <label
-                        htmlFor="fileInput"
-                        className={cn(
-                          'border-2 border-dashed rounded-xl flex flex-col items-center justify-center cursor-pointer relative bg-muted/20 min-h-[200px] p-4 transition-colors hover:border-primary hover:bg-primary/5',
-                          isAiLoading && 'cursor-wait'
-                        )}
-                      >
-                        <input
-                          type="file"
-                          id="fileInput"
-                          className="absolute inset-0 opacity-0 cursor-pointer"
-                          accept="image/*,application/pdf"
-                          onChange={(e) =>
-                            e.target.files && handleFileUpload(e.target.files[0])
-                          }
-                          disabled={isAiLoading}
-                        />
-
-                        <CloudUpload className="h-10 w-10 text-muted-foreground mb-2" />
-                        <p className="font-bold text-foreground text-center text-sm">
-                          Arrastar Nota/Foto/PDF
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          IA preenche automático
-                        </p>
-
-                        {isAiLoading && (
-                          <div className="absolute inset-0 bg-background/80 flex flex-col items-center justify-center">
-                            <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
-                            <span className="text-xs font-bold text-primary">
-                              Lendo...
-                            </span>
-                          </div>
-                        )}
-                      </label>
-                    </div>
-
-                    <Card className="overflow-hidden lg:w-2/3">
-                      <CardHeader className="bg-muted/50 flex flex-row justify-between items-center p-4">
-                        <CardTitle className="text-base font-bold flex items-center gap-2 font-headline">
-                          <Wrench className={`h-5 w-5 text-${companyTheme}`} />
-                          {editingMaintenanceId ? 'Editar Manutenção' : 'Nova Manutenção'}
-                        </CardTitle>
-
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="sparkle-btn text-xs"
-                          onClick={handleAiAnalysis}
-                          disabled={isAiAnalysisLoading}
-                        >
-                          {isAiAnalysisLoading ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <>
-                              <BrainCircuit className="h-4 w-4 mr-2" />
-                              Análise IA
-                            </>
-                          )}
-                        </Button>
-                      </CardHeader>
-
-                      {aiAnalysisResult && (
-                        <div
-                          className="bg-purple-50 dark:bg-purple-900/20 p-4 border-b text-sm prose-sm dark:prose-invert prose-p:my-1 prose-ul:my-1"
-                          dangerouslySetInnerHTML={{ __html: aiAnalysisResult }}
-                        ></div>
                       )}
 
-                      <CardContent className="p-6 space-y-4">
-                        {editingMaintenanceId && (
-                          <div className="flex items-center justify-between rounded-lg border border-amber-300 bg-amber-50 p-3">
-                            <div className="text-sm">
-                              <p className="font-semibold text-amber-800">
-                                Você está editando uma manutenção
-                              </p>
-                              <p className="text-amber-700">
-                                Altere os campos e clique em salvar alteração.
-                              </p>
+                      {isSold && internalVehicle.vendaInfo && (
+                        <>
+                          <div className="font-medium text-green-600">
+                            <p className="text-xs text-muted-foreground">Data da Venda</p>
+                            <p>
+                              {new Date(
+                                internalVehicle.vendaInfo.dataVenda
+                              ).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}
+                            </p>
+                          </div>
+
+                          <div className="font-medium text-green-600">
+                            <p className="text-xs text-muted-foreground">Valor da Venda</p>
+                            <p>{formatCurrency(internalVehicle.vendaInfo.valorVenda)}</p>
+                          </div>
+
+                          <div className="font-medium col-span-2">
+                            <p className="text-xs text-muted-foreground">Comprador</p>
+                            <p>{internalVehicle.vendaInfo.comprador}</p>
+                          </div>
+                        </>
+                      )}
+
+                      {internalVehicle.observacao && (
+                        <div className="font-medium col-span-full">
+                          <p className="text-xs text-muted-foreground flex items-center gap-1">
+                            <MessageSquareText className="h-3 w-3" />
+                            Observação
+                          </p>
+                          <p className="text-sm whitespace-pre-wrap">
+                            {internalVehicle.observacao}
+                          </p>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  <h3 className="text-lg font-bold font-headline mb-4">
+                    Histórico Completo (Excel Style)
+                  </h3>
+
+                  <ScrollArea className="h-64 border rounded-lg">
+                    <div className="space-y-3 p-4">
+                      {sortedMaintenances.length > 0 ? (
+                        sortedMaintenances.map((m) => (
+                          <div
+                            key={m.id}
+                            className="text-sm bg-muted/30 p-3 rounded-lg border-l-4 border-primary"
+                          >
+                            <div className="flex justify-between items-start gap-4 mb-1">
+                              <div>
+                                <div className="font-bold">
+                                  <span>
+                                    {formatMaintenanceDate(m.data)} - {m.fornecedor}
+                                  </span>
+                                </div>
+
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  KM: {m.km.toLocaleString('pt-BR')}
+                                </p>
+                              </div>
+
+                              <div className="flex items-center gap-2">
+                                <Badge
+                                  variant={m.total > 500 ? 'destructive' : 'secondary'}
+                                >
+                                  {formatCurrency(m.total)}
+                                </Badge>
+
+                                {!isSold && (
+                                  <>
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="icon"
+                                      className="h-8 w-8"
+                                      onClick={() => handleEditMaintenance(m)}
+                                    >
+                                      <Pencil className="h-4 w-4" />
+                                    </Button>
+
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="icon"
+                                      className="h-8 w-8 text-red-600 border-red-200 hover:bg-red-50"
+                                      onClick={() => setMaintenanceToDelete(m)}
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </>
+                                )}
+                              </div>
                             </div>
 
-                            <Button variant="outline" size="sm" onClick={resetForm}>
-                              Cancelar edição
-                            </Button>
+                            <ul className="list-disc ml-4 text-xs text-muted-foreground mt-2">
+                              {m.items.map((item, i) => (
+                                <li key={i}>
+                                  {item.descricao} ({formatCurrency(item.valor)})
+                                </li>
+                              ))}
+                            </ul>
+
+                            {m.arquivoUrl && (
+                              <div className="mt-3">
+                                <a
+                                  href={m.arquivoUrl}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="inline-flex items-center gap-2 text-xs text-blue-600 hover:underline"
+                                >
+                                  <Link2 className="h-3 w-3" />
+                                  {m.arquivoNome || 'Abrir anexo'}
+                                </a>
+                              </div>
+                            )}
                           </div>
+                        ))
+                      ) : (
+                        <p className="text-center text-muted-foreground text-sm py-8">
+                          Sem histórico de manutenção.
+                        </p>
+                      )}
+                    </div>
+                  </ScrollArea>
+                </TabsContent>
+
+                <TabsContent value="maintenance">
+                  {!isSold && (
+                    <div className="flex flex-col lg:flex-row gap-6">
+                      <div className="lg:w-1/3">
+                        <label
+                          htmlFor="fileInput"
+                          className={cn(
+                            'border-2 border-dashed rounded-xl flex flex-col items-center justify-center cursor-pointer relative bg-muted/20 min-h-[200px] p-4 transition-colors hover:border-primary hover:bg-primary/5',
+                            isAiLoading && 'cursor-wait'
+                          )}
+                        >
+                          <input
+                            type="file"
+                            id="fileInput"
+                            className="absolute inset-0 opacity-0 cursor-pointer"
+                            accept="image/*,application/pdf"
+                            onChange={(e) =>
+                              e.target.files && handleFileUpload(e.target.files[0])
+                            }
+                            disabled={isAiLoading}
+                          />
+
+                          <CloudUpload className="h-10 w-10 text-muted-foreground mb-2" />
+                          <p className="font-bold text-foreground text-center text-sm">
+                            Arrastar Nota/Foto/PDF
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            IA preenche automático
+                          </p>
+
+                          {isAiLoading && (
+                            <div className="absolute inset-0 bg-background/80 flex flex-col items-center justify-center">
+                              <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
+                              <span className="text-xs font-bold text-primary">
+                                Lendo...
+                              </span>
+                            </div>
+                          )}
+                        </label>
+                      </div>
+
+                      <Card className="overflow-hidden lg:w-2/3">
+                        <CardHeader className="bg-muted/50 flex flex-row justify-between items-center p-4">
+                          <CardTitle className="text-base font-bold flex items-center gap-2 font-headline">
+                            <Wrench className={`h-5 w-5 text-${companyTheme}`} />
+                            {editingMaintenanceId ? 'Editar Manutenção' : 'Nova Manutenção'}
+                          </CardTitle>
+
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="sparkle-btn text-xs"
+                            onClick={handleAiAnalysis}
+                            disabled={isAiAnalysisLoading}
+                          >
+                            {isAiAnalysisLoading ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <>
+                                <BrainCircuit className="h-4 w-4 mr-2" />
+                                Análise IA
+                              </>
+                            )}
+                          </Button>
+                        </CardHeader>
+
+                        {aiAnalysisResult && (
+                          <div
+                            className="bg-purple-50 dark:bg-purple-900/20 p-4 border-b text-sm prose-sm dark:prose-invert prose-p:my-1 prose-ul:my-1"
+                            dangerouslySetInnerHTML={{ __html: aiAnalysisResult }}
+                          ></div>
                         )}
 
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                          <div>
-                            <label className="text-xs font-bold text-muted-foreground uppercase">
-                              Data
-                            </label>
-                            <input
-                              className="w-full p-2 border rounded-lg bg-background"
-                              type="date"
-                              value={maintDate}
-                              onChange={(e) => setMaintDate(e.target.value)}
-                              required
-                            />
-                          </div>
+                        <CardContent className="p-6 space-y-4">
+                          {editingMaintenanceId && (
+                            <div className="flex items-center justify-between rounded-lg border border-amber-300 bg-amber-50 p-3">
+                              <div className="text-sm">
+                                <p className="font-semibold text-amber-800">
+                                  Você está editando uma manutenção
+                                </p>
+                                <p className="text-amber-700">
+                                  Altere os campos e clique em salvar alteração.
+                                </p>
+                              </div>
 
-                          <div>
-                            <label className="text-xs font-bold text-muted-foreground uppercase">
-                              KM REAL
-                            </label>
-                            <input
-                              className="w-full p-2 border rounded-lg bg-background"
-                              type="number"
-                              value={maintKm}
-                              onChange={(e) => setMaintKm(e.target.value)}
-                              required
-                            />
-                          </div>
+                              <Button variant="outline" size="sm" onClick={resetForm}>
+                                Cancelar edição
+                              </Button>
+                            </div>
+                          )}
 
-                          <div>
-                            <label className="text-xs font-bold text-muted-foreground uppercase">
-                              Fornecedor
-                            </label>
-                            <input
-                              className="w-full p-2 border rounded-lg bg-background"
-                              type="text"
-                              value={maintFornecedor}
-                              onChange={(e) => setMaintFornecedor(e.target.value)}
-                              required
-                            />
-                          </div>
-                        </div>
-
-                        <div className="bg-muted/30 p-4 rounded-xl border border-dashed">
-                          <div className="flex flex-wrap items-end gap-3">
-                            <div className="flex-grow">
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
                               <label className="text-xs font-bold text-muted-foreground uppercase">
-                                Descrição do Item
+                                Data
                               </label>
                               <input
                                 className="w-full p-2 border rounded-lg bg-background"
-                                type="text"
-                                value={newItemDesc}
-                                onChange={(e) => setNewItemDesc(e.target.value)}
-                                placeholder="Ex: Filtro de Óleo"
+                                type="date"
+                                value={maintDate}
+                                onChange={(e) => setMaintDate(e.target.value)}
+                                required
                               />
                             </div>
 
-                            <div className="w-32">
+                            <div>
                               <label className="text-xs font-bold text-muted-foreground uppercase">
-                                Valor (R$)
+                                KM REAL
                               </label>
                               <input
                                 className="w-full p-2 border rounded-lg bg-background"
                                 type="number"
-                                step="0.01"
-                                value={newItemValue}
-                                onChange={(e) => setNewItemValue(e.target.value)}
-                                placeholder="0.00"
+                                value={maintKm}
+                                onChange={(e) => setMaintKm(e.target.value)}
+                                required
                               />
                             </div>
 
-                            <Button size="icon" type="button" onClick={handleAddItem}>
-                              <Plus className="h-4 w-4" />
-                            </Button>
+                            <div>
+                              <label className="text-xs font-bold text-muted-foreground uppercase">
+                                Fornecedor
+                              </label>
+                              <input
+                                className="w-full p-2 border rounded-lg bg-background"
+                                type="text"
+                                value={maintFornecedor}
+                                onChange={(e) => setMaintFornecedor(e.target.value)}
+                                required
+                              />
+                            </div>
                           </div>
 
-                          <div className="mt-3 space-y-2 text-sm">
-                            {newMaintItems.map((item, i) => (
-                              <div
-                                key={i}
-                                className="flex justify-between items-center gap-3 rounded-md bg-background p-2 border"
-                              >
-                                <div>
-                                  <p>{item.descricao}</p>
-                                  <p className="text-xs text-muted-foreground">
-                                    {formatCurrency(item.valor)}
-                                  </p>
-                                </div>
-
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8 text-red-600 hover:bg-red-50"
-                                  onClick={() => handleRemoveItem(i)}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
+                          <div className="bg-muted/30 p-4 rounded-xl border border-dashed">
+                            <div className="flex flex-wrap items-end gap-3">
+                              <div className="flex-grow">
+                                <label className="text-xs font-bold text-muted-foreground uppercase">
+                                  Descrição do Item
+                                </label>
+                                <input
+                                  className="w-full p-2 border rounded-lg bg-background"
+                                  type="text"
+                                  value={newItemDesc}
+                                  onChange={(e) => setNewItemDesc(e.target.value)}
+                                  placeholder="Ex: Filtro de Óleo"
+                                />
                               </div>
-                            ))}
-                          </div>
-                        </div>
 
-                        {uploadedMaintenanceFileUrl && (
-                          <div className="rounded-lg border bg-blue-50 p-3 text-sm">
-                            <p className="font-medium text-blue-800">Arquivo anexado</p>
-                            <a
-                              href={uploadedMaintenanceFileUrl}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="text-blue-600 hover:underline"
-                            >
-                              {uploadedMaintenanceFileName || 'Abrir arquivo'}
-                            </a>
-                          </div>
-                        )}
+                              <div className="w-32">
+                                <label className="text-xs font-bold text-muted-foreground uppercase">
+                                  Valor (R$)
+                                </label>
+                                <input
+                                  className="w-full p-2 border rounded-lg bg-background"
+                                  type="number"
+                                  step="0.01"
+                                  value={newItemValue}
+                                  onChange={(e) => setNewItemValue(e.target.value)}
+                                  placeholder="0.00"
+                                />
+                              </div>
 
-                        <div className="mt-6 flex justify-between items-center border-t pt-4">
-                          <div>
-                            <span className="text-xs font-bold text-muted-foreground uppercase">
-                              Total
-                            </span>
-                            <p className={`font-bold text-2xl text-${companyTheme}`}>
-                              {formatCurrency(newMaintenanceTotal)}
-                            </p>
-                          </div>
-
-                          <div className="flex gap-2">
-                            {editingMaintenanceId && (
-                              <Button type="button" variant="outline" onClick={resetForm}>
-                                Cancelar
+                              <Button size="icon" type="button" onClick={handleAddItem}>
+                                <Plus className="h-4 w-4" />
                               </Button>
-                            )}
+                            </div>
 
-                            <Button
-                              onClick={handleSaveMaintenance}
-                              className="bg-green-600 hover:bg-green-700"
-                              disabled={newMaintItems.length === 0}
-                            >
-                              {editingMaintenanceId ? (
-                                <>
-                                  <Save className="h-4 w-4 mr-2" />
-                                  Salvar Alteração
-                                </>
-                              ) : (
-                                'Lançar Histórico'
-                              )}
-                            </Button>
+                            <div className="mt-3 space-y-2 text-sm">
+                              {newMaintItems.map((item, i) => (
+                                <div
+                                  key={i}
+                                  className="flex justify-between items-center gap-3 rounded-md bg-background p-2 border"
+                                >
+                                  <div>
+                                    <p>{item.descricao}</p>
+                                    <p className="text-xs text-muted-foreground">
+                                      {formatCurrency(item.valor)}
+                                    </p>
+                                  </div>
+
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 text-red-600 hover:bg-red-50"
+                                    onClick={() => handleRemoveItem(i)}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              ))}
+                            </div>
                           </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </div>
-                )}
 
-                {isSold && (
-                  <div className="text-center py-10 text-muted-foreground">
-                    <p>O veículo foi vendido. Não é possível adicionar novas manutenções.</p>
-                  </div>
-                )}
-              </TabsContent>
+                          {uploadedMaintenanceFileUrl && (
+                            <div className="rounded-lg border bg-blue-50 p-3 text-sm">
+                              <p className="font-medium text-blue-800">Arquivo anexado</p>
+                              <a
+                                href={uploadedMaintenanceFileUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-blue-600 hover:underline"
+                              >
+                                {uploadedMaintenanceFileName || 'Abrir arquivo'}
+                              </a>
+                            </div>
+                          )}
 
-              <TabsContent value="licensing">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2 font-headline">
-                      <FileBadge />
-                      Status do Licenciamento
-                    </CardTitle>
-                  </CardHeader>
+                          <div className="mt-6 flex justify-between items-center border-t pt-4">
+                            <div>
+                              <span className="text-xs font-bold text-muted-foreground uppercase">
+                                Total
+                              </span>
+                              <p className={`font-bold text-2xl text-${companyTheme}`}>
+                                {formatCurrency(newMaintenanceTotal)}
+                              </p>
+                            </div>
 
-                  <CardContent className="space-y-4">
-                    <div
-                      className={cn('p-4 rounded-lg flex items-center justify-between', {
-                        'bg-green-100 dark:bg-green-900/30': licensingInfo.status === 'ok',
-                        'bg-yellow-100 dark:bg-yellow-900/30': licensingInfo.status === 'alerta',
-                        'bg-red-100 dark:bg-red-900/30': licensingInfo.status === 'vencido',
-                      })}
-                    >
-                      <div>
-                        <p className={cn('font-bold text-lg', getStatusColor())}>
-                          {licensingInfo.status.toUpperCase()}
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          Vencimento: {licensingInfo.dueDate.toLocaleDateString('pt-BR')}
-                        </p>
-                      </div>
+                            <div className="flex gap-2">
+                              {editingMaintenanceId && (
+                                <Button type="button" variant="outline" onClick={resetForm}>
+                                  Cancelar
+                                </Button>
+                              )}
 
-                      <div className="text-right">
-                        <p className="text-2xl font-bold">
-                          {licensingInfo.daysRemaining >= 0
-                            ? licensingInfo.daysRemaining
-                            : Math.abs(licensingInfo.daysRemaining)}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {licensingInfo.daysRemaining >= 0
-                            ? 'dias restantes'
-                            : 'dias vencidos'}
-                        </p>
-                      </div>
+                              <Button
+                                onClick={handleSaveMaintenance}
+                                className="bg-green-600 hover:bg-green-700"
+                                disabled={newMaintItems.length === 0}
+                              >
+                                {editingMaintenanceId ? (
+                                  <>
+                                    <Save className="h-4 w-4 mr-2" />
+                                    Salvar Alteração
+                                  </>
+                                ) : (
+                                  'Lançar Histórico'
+                                )}
+                              </Button>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
                     </div>
+                  )}
 
-                    <p className="text-xs text-muted-foreground">
-                      O cálculo do vencimento é baseado no final da placa para pessoa jurídica.
-                    </p>
+                  {isSold && (
+                    <div className="text-center py-10 text-muted-foreground">
+                      <p>O veículo foi vendido. Não é possível adicionar novas manutenções.</p>
+                    </div>
+                  )}
+                </TabsContent>
 
-                    {!isSold && (
-                      <div className="flex gap-4 pt-4 border-t">
-                        <Button onClick={handleMarkAsLicensed} className="w-full">
-                          <Check className="mr-2 h-4 w-4" />
-                          Marcar como Regularizado para {new Date().getFullYear() + 1}
-                        </Button>
+                <TabsContent value="licensing">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2 font-headline">
+                        <FileBadge />
+                        Status do Licenciamento
+                      </CardTitle>
+                    </CardHeader>
+
+                    <CardContent className="space-y-4">
+                      <div
+                        className={cn('p-4 rounded-lg flex items-center justify-between', {
+                          'bg-green-100 dark:bg-green-900/30': licensingInfo.status === 'ok',
+                          'bg-yellow-100 dark:bg-yellow-900/30': licensingInfo.status === 'alerta',
+                          'bg-red-100 dark:bg-red-900/30': licensingInfo.status === 'vencido',
+                        })}
+                      >
+                        <div>
+                          <p className={cn('font-bold text-lg', getStatusColor())}>
+                            {licensingInfo.status.toUpperCase()}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            Vencimento: {licensingInfo.dueDate.toLocaleDateString('pt-BR')}
+                          </p>
+                        </div>
+
+                        <div className="text-right">
+                          <p className="text-2xl font-bold">
+                            {licensingInfo.daysRemaining >= 0
+                              ? licensingInfo.daysRemaining
+                              : Math.abs(licensingInfo.daysRemaining)}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {licensingInfo.daysRemaining >= 0
+                              ? 'dias restantes'
+                              : 'dias vencidos'}
+                          </p>
+                        </div>
                       </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </TabsContent>
-            </Tabs>
-          </div>
-        </DialogContent>
-      </Dialog>
 
-      <AddEditVehicleModal
-        isOpen={isEditModalOpen}
-        setIsOpen={setEditModalOpen}
-        vehicle={internalVehicle}
-        allVehicles={allVehicles}
-        groups={groups}
-        companyId={companyId}
-        onSave={handleSaveVehicle}
-      />
+                      <p className="text-xs text-muted-foreground">
+                        O cálculo do vencimento é baseado no final da placa para pessoa jurídica.
+                      </p>
 
-      <SellVehicleModal
-        isOpen={isSellModalOpen}
-        setIsOpen={setSellModalOpen}
-        vehicle={internalVehicle}
-        onSold={handleSold}
-      />
+                      {!isSold && (
+                        <div className="flex gap-4 pt-4 border-t">
+                          <Button onClick={handleMarkAsLicensed} className="w-full">
+                            <Check className="mr-2 h-4 w-4" />
+                            Marcar como Regularizado para {new Date().getFullYear() + 1}
+                          </Button>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+              </Tabs>
+            </div>
+          </DialogContent>
+        </Dialog>
 
-      <TransferGroupModal
-        isOpen={isTransferGroupModalOpen}
-        setIsOpen={setTransferGroupModalOpen}
-        groups={groups}
-        companyId={companyId}
-        onTransfer={handleTransferGroup}
-        onAddGroup={onAddGroup}
-        currentVehicle={internalVehicle}
-      />
+        <AddEditVehicleModal
+          isOpen={isEditModalOpen}
+          setIsOpen={setEditModalOpen}
+          vehicle={internalVehicle}
+          allVehicles={allVehicles}
+          groups={groups}
+          companyId={companyId}
+          onSave={handleSaveVehicle}
+        />
 
-      <AlertDialog
-        open={!!maintenanceToDelete}
-        onOpenChange={() => setMaintenanceToDelete(null)}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Excluir manutenção?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Essa ação não poderá ser desfeita. A manutenção
-              {maintenanceToDelete
-                ? ` de ${formatMaintenanceDate(maintenanceToDelete.data)}`
-                : ''}
-              será removida do histórico do veículo.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
+        <SellVehicleModal
+          isOpen={isSellModalOpen}
+          setIsOpen={setSellModalOpen}
+          vehicle={internalVehicle}
+          onSold={handleSold}
+        />
 
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                if (maintenanceToDelete) {
-                  handleDeleteMaintenance(maintenanceToDelete.id);
-                  setMaintenanceToDelete(null);
-                }
-              }}
-            >
-              Excluir
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </>
-  );
+        <TransferGroupModal
+          isOpen={isTransferGroupModalOpen}
+          setIsOpen={setTransferGroupModalOpen}
+          groups={groups}
+          companyId={companyId}
+          onTransfer={handleTransferGroup}
+          onAddGroup={onAddGroup}
+          currentVehicle={internalVehicle}
+        />
+
+        <AlertDialog
+          open={!!maintenanceToDelete}
+          onOpenChange={() => setMaintenanceToDelete(null)}
+        >
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Excluir manutenção?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Essa ação não poderá ser desfeita. A manutenção
+                {maintenanceToDelete
+                  ? ` de ${formatMaintenanceDate(maintenanceToDelete.data)}`
+                  : ''}
+                será removida do histórico do veículo.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => {
+                  if (maintenanceToDelete) {
+                    handleDeleteMaintenance(maintenanceToDelete.id);
+                    setMaintenanceToDelete(null);
+                  }
+                }}
+              >
+                Excluir
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </>
+    );
+  }
 }

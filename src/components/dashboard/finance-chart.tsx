@@ -16,7 +16,7 @@ import { formatCurrency } from '@/lib/utils';
 import type { Vehicle } from '@/lib/types';
 
 interface FinanceChartProps {
-  data: Vehicle[];
+  data: (Vehicle & { compraNoPeriodo?: boolean })[];
 }
 
 function safeDate(value: any): Date | null {
@@ -58,14 +58,16 @@ export default function FinanceChart({ data }: FinanceChartProps) {
     }
 
     data.forEach((vehicle) => {
-      // ✅ COMPRAS: usa dataEntrada (Firestore tem "2017-06-13")
-      const compraDate = safeDate((vehicle as any).dataEntrada);
-      if (compraDate) {
-        const month = compraDate.getMonth();
-        monthlyData[month].purchases += Number(vehicle.valorCompra || 0);
+      // ✅ COMPRAS: Só soma a compra se ela ocorreu no período selecionado no filtro
+      if (vehicle.compraNoPeriodo) {
+        const compraDate = safeDate((vehicle as any).dataEntrada);
+        if (compraDate) {
+          const month = compraDate.getMonth();
+          monthlyData[month].purchases += Number(vehicle.valorCompra || 0);
+        }
       }
 
-      // ✅ RECEITA: venda
+      // ✅ RECEITA: venda (já vem filtrada do BiDashboard)
       if (vehicle.vendaInfo) {
         const vendaDate = safeDate(vehicle.vendaInfo.dataVenda);
         if (vendaDate) {
@@ -74,7 +76,7 @@ export default function FinanceChart({ data }: FinanceChartProps) {
         }
       }
 
-      // ✅ MANUTENÇÃO
+      // ✅ MANUTENÇÃO (já vem filtrada do BiDashboard)
       vehicle.maintenances?.forEach((maint) => {
         const maintDate = safeDate(maint.data);
         if (!maintDate) return;
