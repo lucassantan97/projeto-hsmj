@@ -34,21 +34,21 @@ export default function LoginPage() {
 
   const form = useForm<LoginFormData>({
     defaultValues: {
-      email: 'hs@hslocadora.com',
-      password: 'prisma35',
+      email: '',
+      password: '',
     },
   });
 
- const onSubmit: SubmitHandler<LoginFormData> = async (data) => {
-  setError(null);
+  const onSubmit: SubmitHandler<LoginFormData> = async (data) => {
+    setError(null);
 
-  try {
-    await signInWithEmailAndPassword(auth, data.email, data.password);
-  } catch (e: any) {
-    console.error("Login error:", e);
-    setError('E-mail ou senha inválidos.');
-  }
-};
+    try {
+      await signInWithEmailAndPassword(auth, data.email, data.password);
+    } catch (e: any) {
+      console.error("Login error:", e);
+      setError('E-mail ou senha inválidos.');
+    }
+  };
 
   if (isUserLoading || user) {
     return <FullPageLoader />;
