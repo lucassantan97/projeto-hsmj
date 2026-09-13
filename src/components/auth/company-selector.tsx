@@ -51,7 +51,7 @@ export default function CompanySelector({ user, onSelectCompany, onLogout }: Com
             <div className="w-28 h-20 mb-4 flex items-center justify-center">
               <img 
                 src="/mj-logo.png" 
-                alt="MJ Locadora" 
+                alt="MJ Locadora.png" 
                 className="max-h-full max-w-full object-contain"
               />
             </div>
