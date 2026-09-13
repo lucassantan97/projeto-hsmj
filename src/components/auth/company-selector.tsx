@@ -1,7 +1,6 @@
 'use client';
-// Force rebuild: 2026-09-13T02:30:00Z
+// Force rebuild: 2026-09-13T02:35:00Z
 
-import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import type { User, CompanyId } from '@/lib/types';
 import { LogOut } from 'lucide-react';
@@ -28,13 +27,11 @@ export default function CompanySelector({ user, onSelectCompany, onLogout }: Com
           className="flex-1 p-8 rounded-2xl shadow-lg border-b-8 border-hsRed hover:-translate-y-2 hover:shadow-2xl transition-all group relative overflow-hidden cursor-pointer"
         >
           <CardContent className="relative z-10 flex flex-col items-center p-0">
-            <div className="w-28 h-20 relative mb-4 flex items-center justify-center">
-              <Image 
+            <div className="w-28 h-20 mb-4 flex items-center justify-center">
+              <img 
                 src="/hs-logo.png" 
                 alt="HS Locadora" 
-                width={112} 
-                height={80} 
-                className="object-contain"
+                className="max-h-full max-w-full object-contain"
               />
             </div>
             <h3 className="text-2xl font-bold font-headline text-foreground">
@@ -51,13 +48,11 @@ export default function CompanySelector({ user, onSelectCompany, onLogout }: Com
           className="flex-1 p-8 rounded-2xl shadow-lg border-b-8 border-mjOrange hover:-translate-y-2 hover:shadow-2xl transition-all group relative overflow-hidden cursor-pointer"
         >
           <CardContent className="relative z-10 flex flex-col items-center p-0">
-            <div className="w-28 h-20 relative mb-4 flex items-center justify-center">
-              <Image 
+            <div className="w-28 h-20 mb-4 flex items-center justify-center">
+              <img 
                 src="/mj-logo.png" 
                 alt="MJ Locadora" 
-                width={112} 
-                height={80} 
-                className="object-contain"
+                className="max-h-full max-w-full object-contain"
               />
             </div>
             <h3 className="text-2xl font-bold font-headline text-foreground">
